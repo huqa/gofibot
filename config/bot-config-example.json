@@ -1,0 +1,11 @@
+{
+    "nick": "examplebot",
+    "ident": "examplebot",
+    "realname":"examplebot",
+    "version":"gofibot v0.01",
+    "quitMessage":"bye!",
+    "server": "irc.atw-inter.net",
+    "channels": [
+        "#mychannel"
+    ]
+}
