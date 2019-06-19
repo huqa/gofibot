@@ -19,7 +19,8 @@ func NewApplication(
 	log logger.Logger,
 	botConfig config.BotConfiguration,
 ) (a *Application, err error) {
-	ircService := NewIRCService(botConfig)
+	ircService := NewIRCService(log, botConfig)
+
 	app := &Application{
 		log:        log.Named("gofibot").WithContext(ctx),
 		ircService: ircService,
