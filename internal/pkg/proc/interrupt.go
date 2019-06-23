@@ -2,12 +2,12 @@
 package proc
 
 import (
-    "os"
-    "os/signal"
+	"os"
+	"os/signal"
 )
 
 func WaitForInterrupt() {
-    stop := make(chan os.Signal, 1)
-    signal.Notify(stop, os.Interrupt)
-    <-stop
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	<-stop
 }

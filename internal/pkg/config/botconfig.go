@@ -15,6 +15,7 @@ type BotConfiguration struct {
 	QuitMessage string   `json:"quitMessage"`
 	Server      string   `json:"server"`
 	Channels    []string `json:"channels"`
+	Prefix      string   `json:"prefix"`
 }
 
 func (c BotConfiguration) String() string {

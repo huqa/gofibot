@@ -41,7 +41,7 @@ func main() {
 	appConfig.BotConfig = botConfig
 
 	log := logger.New(appConfig.Logger)
-	_, err = gofibot.NewApplication(ctx, log)
+	_, err = gofibot.NewApplication(ctx, log, appConfig.BotConfig)
 	if err != nil {
 		log.Fatal("failed to create gofibot ", err)
 		os.Exit(1)

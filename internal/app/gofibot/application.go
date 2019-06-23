@@ -20,10 +20,15 @@ func NewApplication(
 	botConfig config.BotConfiguration,
 ) (a *Application, err error) {
 	ircService := NewIRCService(log, botConfig)
+	err = ircService.Init()
+	if err != nil {
+		log.Error("error initializing irc service")
+	}
 
 	app := &Application{
 		log:        log.Named("gofibot").WithContext(ctx),
 		ircService: ircService,
 	}
+
 	return app, nil
 }
