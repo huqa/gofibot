@@ -79,6 +79,9 @@ func (is *IRCService) LoadModules() error {
 	echoModule := modules.NewEchoModule(is.log, is.connection)
 	echoModule.Init()
 	_ = is.AddPRIVMSGModule(echoModule)
+	weatherModule := modules.NewWeatherModule(is.log, is.connection)
+	weatherModule.Init()
+	_ = is.AddPRIVMSGModule(weatherModule)
 	return nil
 }
 
@@ -105,11 +108,14 @@ func (is *IRCService) AddPRIVMSGModule(module modules.Module) int {
 
 			withoutPrefix := strings.Replace(e.Message(), is.Prefix, "", 1)
 			command := strings.Split(withoutPrefix, " ")[0]
+			args := strings.Split(event.Message(), " ")[1:]
 
-			if command == module.Command() {
-				err := module.Run(e.Nick, e.Arguments[0], event.Message())
-				if err != nil {
-					log.Error("module run error: ", err)
+			for _, cmd := range module.Commands() {
+				if command == cmd {
+					err := module.Run(e.Nick, e.Arguments[0], event.Message(), args)
+					if err != nil {
+						log.Error("module run error: ", err)
+					}
 				}
 			}
 		}(event)

@@ -11,7 +11,6 @@ import (
 type Application struct {
 	log        logger.Logger
 	ircService IRCServiceInterface
-	//eventHandler
 }
 
 func NewApplication(

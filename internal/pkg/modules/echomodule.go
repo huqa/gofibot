@@ -6,16 +6,16 @@ import (
 )
 
 type EchoModule struct {
-	log     logger.Logger
-	command string
-	conn    *irc.Connection
+	log      logger.Logger
+	commands []string
+	conn     *irc.Connection
 }
 
 func NewEchoModule(log logger.Logger, conn *irc.Connection) *EchoModule {
 	return &EchoModule{
-		log:     log.Named("echomodule"),
-		command: "echo",
-		conn:    conn,
+		log:      log.Named("echomodule"),
+		commands: []string{"echo"},
+		conn:     conn,
 	}
 }
 
@@ -24,11 +24,11 @@ func (m *EchoModule) Init() error {
 	return nil
 }
 
-func (m *EchoModule) Run(user, channel, message string) error {
+func (m *EchoModule) Run(user, channel, message string, args []string) error {
 	m.conn.Privmsg(channel, user+": "+message)
 	return nil
 }
 
-func (m *EchoModule) Command() string {
-	return m.command
+func (m *EchoModule) Commands() []string {
+	return m.commands
 }
