@@ -34,7 +34,7 @@ func NewWeatherModule(log logger.Logger, conn *irc.Connection) *WeatherModule {
 		commands:       []string{"w", "sää", "saa"},
 		conn:           conn,
 		url:            "http://wttr.in/%s",
-		weatherOptions: "?format=%l+%C+%t+%h+%w+%p&lang=fi",
+		weatherOptions: "?format=%l,%C,%t,%h,%w,%p&lang=fi",
 	}
 }
 
@@ -47,14 +47,14 @@ func (m *WeatherModule) Init() error {
 	// extract status code
 	c.OnResponse(func(r *colly.Response) {
 		m.log.Debug("response received: ", r.StatusCode)
-		var wd = strings.Split(string(r.Body), " ")
+		var wd = strings.Split(string(r.Body), ",")
 		m.wd = WeatherData{
 			Location:      strings.Title(wd[0]),
 			Description:   wd[1],
 			Temperature:   wd[2],
 			Humidity:      wd[3],
-			Wind:          wd[4] + " " + wd[5],
-			Precipitation: wd[6],
+			Wind:          wd[4],
+			Precipitation: wd[5],
 		}
 	})
 	c.OnError(func(r *colly.Response, err error) {
