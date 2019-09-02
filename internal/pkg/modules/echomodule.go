@@ -9,6 +9,8 @@ type EchoModule struct {
 	log      logger.Logger
 	commands []string
 	conn     *irc.Connection
+	event    string
+	public   bool
 }
 
 func NewEchoModule(log logger.Logger, conn *irc.Connection) *EchoModule {
@@ -16,6 +18,8 @@ func NewEchoModule(log logger.Logger, conn *irc.Connection) *EchoModule {
 		log:      log.Named("echomodule"),
 		commands: []string{"echo"},
 		conn:     conn,
+		event:    "PRIVMSG",
+		public:   false,
 	}
 }
 
@@ -31,4 +35,12 @@ func (m *EchoModule) Run(user, channel, message string, args []string) error {
 
 func (m *EchoModule) Commands() []string {
 	return m.commands
+}
+
+func (m *EchoModule) Event() string {
+	return m.event
+}
+
+func (m *EchoModule) Public() bool {
+	return m.public
 }

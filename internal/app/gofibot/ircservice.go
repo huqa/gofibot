@@ -1,8 +1,6 @@
 package gofibot
 
 import (
-	"strings"
-
 	"github.com/huqa/gofibot/internal/pkg/config"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
@@ -10,20 +8,20 @@ import (
 )
 
 type IRCServiceInterface interface {
-	//AddCallback(eventCode string, cb func(e *irc.Event)) int
 	Init() error
-	AddPRIVMSGModule(module modules.Module) int
 	Connect(host string) error
 	LoadModules() error
 	JoinChannels() error
+	RegisterModuleCallbacks()
+	AddCallback(eventCode string, cb func(e *irc.Event)) int
 }
 
 type IRCService struct {
-	log        logger.Logger
-	config     config.BotConfiguration
-	connection *irc.Connection
-	callbacks  []int
-	Prefix     string
+	log           logger.Logger
+	moduleService ModuleServiceInterface
+	config        config.BotConfiguration
+	connection    *irc.Connection
+	callbacks     []int
 }
 
 func NewIRCService(log logger.Logger, cfg config.BotConfiguration) IRCServiceInterface {
@@ -33,11 +31,11 @@ func NewIRCService(log logger.Logger, cfg config.BotConfiguration) IRCServiceInt
 	conn.UseTLS = false
 
 	return &IRCService{
-		config:     cfg,
-		connection: conn,
-		callbacks:  make([]int, 0),
-		log:        log.Named("ircservice"),
-		Prefix:     cfg.Prefix,
+		config:        cfg,
+		connection:    conn,
+		callbacks:     make([]int, 0),
+		log:           log.Named("ircservice"),
+		moduleService: NewModuleService(log, cfg.Prefix),
 	}
 }
 
@@ -76,12 +74,15 @@ func (is *IRCService) AddCallback(eventCode string, cb func(e *irc.Event)) int {
 func (is *IRCService) LoadModules() error {
 	log := is.log.Named("LoadModules")
 	log.Info("loading modules")
-	echoModule := modules.NewEchoModule(is.log, is.connection)
-	echoModule.Init()
-	_ = is.AddPRIVMSGModule(echoModule)
-	weatherModule := modules.NewWeatherModule(is.log, is.connection)
-	weatherModule.Init()
-	_ = is.AddPRIVMSGModule(weatherModule)
+	err := is.moduleService.RegisterModules(
+		modules.NewEchoModule(is.log, is.connection),
+		modules.NewWeatherModule(is.log, is.connection),
+		modules.NewURLTitleModule(is.log, is.connection),
+	)
+	if err != nil {
+		return err
+	}
+	is.RegisterModuleCallbacks()
 	return nil
 }
 
@@ -101,25 +102,9 @@ func (is *IRCService) Connect(host string) error {
 	return is.connection.Connect(host)
 }
 
-func (is *IRCService) AddPRIVMSGModule(module modules.Module) int {
-	log := is.log.Named("AddPRIVMSGModule")
+func (is *IRCService) RegisterModuleCallbacks() {
 	cbID := is.connection.AddCallback("PRIVMSG", func(event *irc.Event) {
-		go func(e *irc.Event) {
-
-			withoutPrefix := strings.Replace(e.Message(), is.Prefix, "", 1)
-			command := strings.Split(withoutPrefix, " ")[0]
-			args := strings.Split(event.Message(), " ")[1:]
-
-			for _, cmd := range module.Commands() {
-				if command == cmd {
-					err := module.Run(e.Nick, e.Arguments[0], event.Message(), args)
-					if err != nil {
-						log.Error("module run error: ", err)
-					}
-				}
-			}
-		}(event)
+		go is.moduleService.PRIVMSGCallback(event)
 	})
 	is.callbacks = append(is.callbacks, cbID)
-	return cbID
 }

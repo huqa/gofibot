@@ -2,7 +2,9 @@ package modules
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gocolly/colly"
 	"github.com/huqa/gofibot/internal/pkg/logger"
@@ -11,12 +13,14 @@ import (
 
 type WeatherModule struct {
 	log              logger.Logger
+	public           bool
+	event            string
 	commands         []string
 	conn             *irc.Connection
 	weatherCollector *colly.Collector
 	url              string
 	weatherOptions   string
-	wd               WeatherData
+	wdResponses      map[string]*WeatherData
 }
 
 type WeatherData struct {
@@ -35,6 +39,9 @@ func NewWeatherModule(log logger.Logger, conn *irc.Connection) *WeatherModule {
 		conn:           conn,
 		url:            "http://wttr.in/%s",
 		weatherOptions: "?format=%l,%C,%t,%h,%w,%p&lang=fi",
+		event:          "PRIVMSG",
+		public:         false,
+		wdResponses:    make(map[string]*WeatherData, 0),
 	}
 }
 
@@ -44,11 +51,11 @@ func (m *WeatherModule) Init() error {
 		colly.AllowedDomains("wttr.in"),
 	)
 	c.AllowURLRevisit = true
-	// extract status code
 	c.OnResponse(func(r *colly.Response) {
 		m.log.Debug("response received: ", r.StatusCode)
 		var wd = strings.Split(string(r.Body), ",")
-		m.wd = WeatherData{
+		ID := r.Ctx.Get("ID")
+		m.wdResponses[ID] = &WeatherData{
 			Location:      strings.Title(wd[0]),
 			Description:   wd[1],
 			Temperature:   wd[2],
@@ -70,13 +77,38 @@ func (m *WeatherModule) Run(user, channel, message string, args []string) error 
 	}
 	weatherUrl := fmt.Sprintf(m.url, args[0])
 	weatherUrl += m.weatherOptions
-	m.weatherCollector.Visit(weatherUrl)
+	//m.weatherCollector.Visit(weatherUrl)
+	ID := strconv.FormatInt(time.Now().UnixNano(), 10)
+	ctx := colly.NewContext()
+	ctx.Put("ID", ID)
+	m.weatherCollector.Request("GET", weatherUrl, nil, ctx, nil)
 	m.weatherCollector.Wait()
-	wString := fmt.Sprintf("!w - sää %s: %s - %s, ilmankosteus %s, tuuli %s, sademäärä %s", m.wd.Location, m.wd.Temperature, m.wd.Description, m.wd.Humidity, m.wd.Wind, m.wd.Precipitation)
+	wd, ok := m.wdResponses[ID]
+	if !ok {
+		return nil
+	}
+	wString := fmt.Sprintf(
+		"!w - sää %s: %s - %s, ilmankosteus %s, tuuli %s, sademäärä %s",
+		wd.Location,
+		wd.Temperature,
+		wd.Description,
+		wd.Humidity,
+		wd.Wind,
+		wd.Precipitation,
+	)
+	m.wdResponses[ID] = nil
 	m.conn.Privmsg(channel, wString)
 	return nil
 }
 
 func (m *WeatherModule) Commands() []string {
 	return m.commands
+}
+
+func (m *WeatherModule) Event() string {
+	return m.event
+}
+
+func (m *WeatherModule) Public() bool {
+	return m.public
 }
