@@ -75,8 +75,8 @@ func (m *WeatherModule) Init() error {
 func (m *WeatherModule) Run(user, channel, message string, args []string) error {
 	if len(args) == 0 {
 		return nil
-	}
-	weatherUrl := fmt.Sprintf(m.url, args[0])
+        }
+        weatherUrl := fmt.Sprintf(m.url, args[1:])
 	weatherUrl += m.weatherOptions
 	//m.weatherCollector.Visit(weatherUrl)
 	ID := strconv.FormatInt(time.Now().UnixNano(), 10)
