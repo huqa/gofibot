@@ -8,12 +8,14 @@ import (
 	irc "github.com/thoj/go-ircevent"
 )
 
+// ModuleServiceInterface defines an interface for ModuleService
 type ModuleServiceInterface interface {
 	RegisterModules(botmodules ...modules.ModuleInterface) error
 	Command(string) modules.ModuleInterface
 	PRIVMSGCallback(e *irc.Event)
 }
 
+// ModuleService handles gofibots command based modules
 type ModuleService struct {
 	log            logger.Logger
 	commands       map[string]modules.ModuleInterface
@@ -22,6 +24,7 @@ type ModuleService struct {
 	Prefix         string
 }
 
+// NewModuleService constructs new ModuleService
 func NewModuleService(log logger.Logger, prefix string) ModuleServiceInterface {
 	return &ModuleService{
 		log:            log.Named("moduleservice"),
@@ -31,9 +34,11 @@ func NewModuleService(log logger.Logger, prefix string) ModuleServiceInterface {
 	}
 }
 
+// RegisterModules registers modules to ModuleService
+// First registers a module and then calls its Init method
 func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) error {
 	for _, md := range botmodules {
-		if md.Public() {
+		if md.Global() {
 			m.publicCommands = append(m.publicCommands, md)
 			m.log.Infof("registered public command %s", md)
 		}
@@ -49,6 +54,7 @@ func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) e
 	return nil
 }
 
+// Command checks if str is found from a map and returns that commands module
 func (m *ModuleService) Command(str string) modules.ModuleInterface {
 	if md, ok := m.commands[str]; ok {
 		return md
@@ -56,6 +62,7 @@ func (m *ModuleService) Command(str string) modules.ModuleInterface {
 	return nil
 }
 
+// PRIVMSGCallback calls a modules Run function if event or command matches
 func (m *ModuleService) PRIVMSGCallback(e *irc.Event) {
 	if !strings.HasPrefix(e.Message(), m.Prefix) {
 		args := strings.Split(e.Message(), " ")[1:]

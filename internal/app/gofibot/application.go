@@ -8,11 +8,13 @@ import (
 	"github.com/huqa/gofibot/internal/pkg/logger"
 )
 
+// Application defines all necessary services to be used by gofibot
 type Application struct {
 	log        logger.Logger
 	ircService IRCServiceInterface
 }
 
+// NewApplication construct a new gofibot application
 func NewApplication(
 	ctx context.Context,
 	log logger.Logger,

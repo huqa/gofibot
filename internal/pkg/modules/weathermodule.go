@@ -11,9 +11,10 @@ import (
 	irc "github.com/thoj/go-ircevent"
 )
 
+// WeatherModule fetches weather from an outside service
 type WeatherModule struct {
 	log              logger.Logger
-	public           bool
+	global           bool
 	event            string
 	commands         []string
 	conn             *irc.Connection
@@ -23,6 +24,7 @@ type WeatherModule struct {
 	wdResponses      map[string]*WeatherData
 }
 
+// WeatherData defines the basic data structure for weather data
 type WeatherData struct {
 	Location      string
 	Description   string
@@ -32,6 +34,7 @@ type WeatherData struct {
 	Precipitation string
 }
 
+// NewWeatherModule constructs new WeatherModule
 func NewWeatherModule(log logger.Logger, conn *irc.Connection) *WeatherModule {
 	return &WeatherModule{
 		log:            log.Named("weathermodule"),
@@ -40,11 +43,12 @@ func NewWeatherModule(log logger.Logger, conn *irc.Connection) *WeatherModule {
 		url:            "http://wttr.in/%s",
 		weatherOptions: "?format=%l,%C,%t,%h,%w,%p&lang=fi",
 		event:          "PRIVMSG",
-		public:         false,
+		global:         false,
 		wdResponses:    make(map[string]*WeatherData, 0),
 	}
 }
 
+// Init initializes weather module
 func (m *WeatherModule) Init() error {
 	m.log.Info("Init")
 	c := colly.NewCollector(
@@ -55,8 +59,8 @@ func (m *WeatherModule) Init() error {
 		m.log.Debug("response received: ", r.StatusCode)
 		var wd = strings.Split(string(r.Body), ",")
 		ID := r.Ctx.Get("ID")
-                Channel := r.Ctx.Get("Channel")
-		m.wdResponses[ID + Channel] = &WeatherData{
+		Channel := r.Ctx.Get("Channel")
+		m.wdResponses[ID+Channel] = &WeatherData{
 			Location:      strings.Title(wd[0]),
 			Description:   wd[1],
 			Temperature:   wd[2],
@@ -72,20 +76,21 @@ func (m *WeatherModule) Init() error {
 	return nil
 }
 
+// Run sends weather data to PRIVMSG target channel
 func (m *WeatherModule) Run(user, channel, message string, args []string) error {
 	if len(args) == 0 {
 		return nil
-        }
-        weatherUrl := fmt.Sprintf(m.url, args[1:])
-	weatherUrl += m.weatherOptions
-	//m.weatherCollector.Visit(weatherUrl)
+	}
+	weatherURL := fmt.Sprintf(m.url, strings.Join(args[:], " "))
+	weatherURL += m.weatherOptions
 	ID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	ctx := colly.NewContext()
 	ctx.Put("ID", ID)
-        ctx.Put("Channel", channel)
-	m.weatherCollector.Request("GET", weatherUrl, nil, ctx, nil)
+	ctx.Put("Channel", channel)
+	key := ID + channel
+	m.weatherCollector.Request("GET", weatherURL, nil, ctx, nil)
 	m.weatherCollector.Wait()
-	wd, ok := m.wdResponses[ID + channel]
+	wd, ok := m.wdResponses[key]
 	if !ok {
 		return nil
 	}
@@ -98,19 +103,22 @@ func (m *WeatherModule) Run(user, channel, message string, args []string) error 
 		wd.Wind,
 		wd.Precipitation,
 	)
-	delete(m.wdResponses, ID + channel)
+	delete(m.wdResponses, key)
 	m.conn.Privmsg(channel, wString)
 	return nil
 }
 
+// Commands return all commands used by the module
 func (m *WeatherModule) Commands() []string {
 	return m.commands
 }
 
+// Event returns event type used by this module
 func (m *WeatherModule) Event() string {
 	return m.event
 }
 
-func (m *WeatherModule) Public() bool {
-	return m.public
+// Global returns true if this module is a global command
+func (m *WeatherModule) Global() bool {
+	return m.global
 }
