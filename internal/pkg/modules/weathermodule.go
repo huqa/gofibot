@@ -55,7 +55,8 @@ func (m *WeatherModule) Init() error {
 		m.log.Debug("response received: ", r.StatusCode)
 		var wd = strings.Split(string(r.Body), ",")
 		ID := r.Ctx.Get("ID")
-		m.wdResponses[ID] = &WeatherData{
+                Channel := r.Ctx.Get("Channel")
+		m.wdResponses[ID + Channel] = &WeatherData{
 			Location:      strings.Title(wd[0]),
 			Description:   wd[1],
 			Temperature:   wd[2],
@@ -81,9 +82,10 @@ func (m *WeatherModule) Run(user, channel, message string, args []string) error 
 	ID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	ctx := colly.NewContext()
 	ctx.Put("ID", ID)
+        ctx.Put("Channel", channel)
 	m.weatherCollector.Request("GET", weatherUrl, nil, ctx, nil)
 	m.weatherCollector.Wait()
-	wd, ok := m.wdResponses[ID]
+	wd, ok := m.wdResponses[ID + channel]
 	if !ok {
 		return nil
 	}
@@ -96,7 +98,7 @@ func (m *WeatherModule) Run(user, channel, message string, args []string) error 
 		wd.Wind,
 		wd.Precipitation,
 	)
-	m.wdResponses[ID] = nil
+	delete(m.wdResponses, ID + channel)
 	m.conn.Privmsg(channel, wString)
 	return nil
 }
