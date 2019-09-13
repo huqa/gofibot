@@ -19,7 +19,7 @@ type ModuleServiceInterface interface {
 type ModuleService struct {
 	log            logger.Logger
 	commands       map[string]modules.ModuleInterface
-	publicCommands []modules.ModuleInterface
+	globalCommands []modules.ModuleInterface
 	callbacks      []int
 	Prefix         string
 }
@@ -28,7 +28,7 @@ type ModuleService struct {
 func NewModuleService(log logger.Logger, prefix string) ModuleServiceInterface {
 	return &ModuleService{
 		log:            log.Named("moduleservice"),
-		publicCommands: make([]modules.ModuleInterface, 0),
+		globalCommands: make([]modules.ModuleInterface, 0),
 		commands:       make(map[string]modules.ModuleInterface, 0),
 		Prefix:         prefix,
 	}
@@ -39,7 +39,7 @@ func NewModuleService(log logger.Logger, prefix string) ModuleServiceInterface {
 func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) error {
 	for _, md := range botmodules {
 		if md.Global() {
-			m.publicCommands = append(m.publicCommands, md)
+			m.globalCommands = append(m.globalCommands, md)
 			m.log.Infof("registered public command %s", md)
 		}
 		for _, cmd := range md.Commands() {
@@ -66,7 +66,7 @@ func (m *ModuleService) Command(str string) modules.ModuleInterface {
 func (m *ModuleService) PRIVMSGCallback(e *irc.Event) {
 	if !strings.HasPrefix(e.Message(), m.Prefix) {
 		args := strings.Split(e.Message(), " ")[1:]
-		for _, pcmd := range m.publicCommands {
+		for _, pcmd := range m.globalCommands {
 			err := pcmd.Run(e.Nick, e.Arguments[0], e.Message(), args)
 			if err != nil {
 				m.log.Error("module run error: ", err)
