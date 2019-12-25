@@ -5,6 +5,7 @@
     "version":"gofibot v0.01",
     "quitMessage":"bye!",
     "server": "irc.atw-inter.net",
+    "prefix": "!",
     "channels": [
         "#mychannel"
     ]

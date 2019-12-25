@@ -1,18 +1,17 @@
 package gofibot
 
 import (
-	"strings"
-
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
-	irc "github.com/thoj/go-ircevent"
+	"github.com/lrstanley/girc"
+	"strings"
 )
 
 // ModuleServiceInterface defines an interface for ModuleService
 type ModuleServiceInterface interface {
 	RegisterModules(botmodules ...modules.ModuleInterface) error
 	Command(string) modules.ModuleInterface
-	PRIVMSGCallback(e *irc.Event)
+	PRIVMSGCallback(e *girc.Event)
 }
 
 // ModuleService handles gofibots command based modules
@@ -63,11 +62,21 @@ func (m *ModuleService) Command(str string) modules.ModuleInterface {
 }
 
 // PRIVMSGCallback calls a modules Run function if event or command matches
-func (m *ModuleService) PRIVMSGCallback(e *irc.Event) {
-	if !strings.HasPrefix(e.Message(), m.Prefix) {
-		args := strings.Split(e.Message(), " ")[1:]
+func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
+	/*m.log.Debug("event ", e)
+	m.log.Debug("event ", e.String())
+	m.log.Debug("event", e.Command)
+	m.log.Debug("event", e.Params)
+	m.log.Debug("source", e.Source.Name)
+	m.log.Debug("chan", e.Params[0])
+	m.log.Debug("args", e.Params[1:])*/
+
+	channel := e.Params[0]
+	message := strings.Join(e.Params[1:], " ")
+	if !strings.HasPrefix(message, m.Prefix) {
 		for _, pcmd := range m.globalCommands {
-			err := pcmd.Run(e.Nick, e.Arguments[0], e.Message(), args)
+			m.log.Debug(e.Source.Name, channel, message, e.Params[1:])
+			err := pcmd.Run(e.Source.Name, channel, message, e.Params[1:])
 			if err != nil {
 				m.log.Error("module run error: ", err)
 			}
@@ -75,16 +84,14 @@ func (m *ModuleService) PRIVMSGCallback(e *irc.Event) {
 		return
 	}
 
-	withoutPrefix := strings.Replace(e.Message(), m.Prefix, "", 1)
+	withoutPrefix := strings.Replace(message, m.Prefix, "", 1)
 	command := strings.Split(withoutPrefix, " ")[0]
-	args := strings.Split(e.Message(), " ")[1:]
-
 	msm := m.Command(command)
 	if msm != nil {
 		if msm.Event() != "PRIVMSG" {
 			return
 		}
-		err := msm.Run(e.Nick, e.Arguments[0], e.Message(), args)
+		err := msm.Run(e.Source.Name, channel, message, e.Params[1:])
 		if err != nil {
 			m.log.Error("module run error: ", err)
 		}

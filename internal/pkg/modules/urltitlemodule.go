@@ -7,7 +7,7 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/huqa/gofibot/internal/pkg/logger"
-	irc "github.com/thoj/go-ircevent"
+	"github.com/lrstanley/girc"
 )
 
 // URLTitleModule handles url titles scraped from PRIVMSGs
@@ -15,7 +15,7 @@ import (
 type URLTitleModule struct {
 	log            logger.Logger
 	commands       []string
-	conn           *irc.Connection
+	client         *girc.Client
 	titleCollector *colly.Collector
 	event          string
 	global         bool
@@ -26,11 +26,11 @@ type URLTitleModule struct {
 type URLTitle string
 
 // NewURLTitleModule constructs new URLTitleModule
-func NewURLTitleModule(log logger.Logger, conn *irc.Connection) *URLTitleModule {
+func NewURLTitleModule(log logger.Logger, client *girc.Client) *URLTitleModule {
 	return &URLTitleModule{
 		log:       log.Named("urltitlemodule"),
 		commands:  []string{},
-		conn:      conn,
+		client:    client,
 		event:     "PRIVMSG",
 		global:    true,
 		responses: make(map[string]URLTitle, 0),
@@ -75,7 +75,7 @@ func (m *URLTitleModule) Run(user, channel, message string, args []string) error
 		return nil
 	}
 	delete(m.responses, key)
-	m.conn.Privmsg(channel, "Title: "+string(URLTitle))
+	m.client.Cmd.Message(channel, "Title: "+string(URLTitle))
 	return nil
 }
 
