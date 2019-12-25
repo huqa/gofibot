@@ -8,7 +8,7 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/huqa/gofibot/internal/pkg/logger"
-	irc "github.com/thoj/go-ircevent"
+	"github.com/lrstanley/girc"
 )
 
 // WeatherModule fetches weather from an outside service
@@ -17,7 +17,7 @@ type WeatherModule struct {
 	global           bool
 	event            string
 	commands         []string
-	conn             *irc.Connection
+	client           *girc.Client
 	weatherCollector *colly.Collector
 	url              string
 	weatherOptions   string
@@ -35,11 +35,11 @@ type WeatherData struct {
 }
 
 // NewWeatherModule constructs new WeatherModule
-func NewWeatherModule(log logger.Logger, conn *irc.Connection) *WeatherModule {
+func NewWeatherModule(log logger.Logger, client *girc.Client) *WeatherModule {
 	return &WeatherModule{
 		log:            log.Named("weathermodule"),
 		commands:       []string{"w", "sää", "saa"},
-		conn:           conn,
+		client:         client,
 		url:            "http://wttr.in/%s",
 		weatherOptions: "?format=%l,%C,%t,%h,%w,%p&lang=fi",
 		event:          "PRIVMSG",
@@ -104,7 +104,7 @@ func (m *WeatherModule) Run(user, channel, message string, args []string) error 
 		wd.Precipitation,
 	)
 	delete(m.wdResponses, key)
-	m.conn.Privmsg(channel, wString)
+	m.client.Cmd.Message(channel, wString)
 	return nil
 }
 

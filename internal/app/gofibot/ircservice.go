@@ -4,36 +4,44 @@ import (
 	"github.com/huqa/gofibot/internal/pkg/config"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
-	irc "github.com/thoj/go-ircevent"
+	"github.com/lrstanley/girc"
 )
 
 type IRCServiceInterface interface {
 	Init() error
-	Connect(host string) error
+	Connect() error
 	LoadModules() error
 	JoinChannels() error
 	RegisterModuleCallbacks()
-	AddCallback(eventCode string, cb func(e *irc.Event)) int
 }
 
 type IRCService struct {
 	log           logger.Logger
 	moduleService ModuleServiceInterface
 	config        config.BotConfiguration
-	connection    *irc.Connection
-	callbacks     []int
+	client        *girc.Client
+	callbacks     []string
 }
 
 func NewIRCService(log logger.Logger, cfg config.BotConfiguration) IRCServiceInterface {
-	conn := irc.IRC(cfg.Nick, cfg.Ident)
-	conn.VerboseCallbackHandler = true
-	conn.Debug = true
-	conn.UseTLS = false
+
+	config := girc.Config{
+		Nick:   cfg.Nick,
+		User:   cfg.Ident,
+		Name:   cfg.Realname,
+		Server: cfg.Server,
+		Port:   6667,
+		Out:    log,
+	}
+
+	log.Debug(config)
+
+	client := girc.New(config)
 
 	return &IRCService{
 		config:        cfg,
-		connection:    conn,
-		callbacks:     make([]int, 0),
+		client:        client,
+		callbacks:     make([]string, 0),
 		log:           log.Named("ircservice"),
 		moduleService: NewModuleService(log, cfg.Prefix),
 	}
@@ -48,36 +56,34 @@ func (is *IRCService) Init() error {
 		log.Error("can't load modules ", err)
 		return err
 	}
-
-	err = is.Connect(is.config.Server)
-	if err != nil {
-		log.Error("error connecting to server ", err)
-		return err
-	}
-
 	err = is.JoinChannels()
 	if err != nil {
 		log.Error("error joining channels ", err)
 		return err
 	}
+
+	err = is.Connect()
+	if err != nil {
+		log.Error("error connecting to server ", err)
+		return err
+	}
+
 	return nil
 }
 
-func (is *IRCService) AddCallback(eventCode string, cb func(e *irc.Event)) int {
-	cbID := is.connection.AddCallback(eventCode, func(event *irc.Event) {
-		go cb(event)
-	})
-	is.callbacks = append(is.callbacks, cbID)
-	return cbID
+func (is *IRCService) Connect() error {
+	log := is.log.Named("Connect")
+	log.Info("connecting to server: ", is.config.Server)
+	return is.client.Connect()
 }
 
 func (is *IRCService) LoadModules() error {
 	log := is.log.Named("LoadModules")
 	log.Info("loading modules")
 	err := is.moduleService.RegisterModules(
-		modules.NewEchoModule(is.log, is.connection),
-		modules.NewWeatherModule(is.log, is.connection),
-		modules.NewURLTitleModule(is.log, is.connection),
+		modules.NewEchoModule(is.log, is.client),
+		modules.NewWeatherModule(is.log, is.client),
+		modules.NewURLTitleModule(is.log, is.client),
 	)
 	if err != nil {
 		return err
@@ -88,23 +94,20 @@ func (is *IRCService) LoadModules() error {
 
 func (is *IRCService) JoinChannels() error {
 	log := is.log.Named("JoinChannels")
-	log.Info("joining channels: ", is.config.Channels)
+	log.Info("joining channels when connected: ", is.config.Channels)
 
-	for _, ch := range is.config.Channels {
-		is.connection.Join(ch)
-	}
+	is.client.Handlers.Add(girc.CONNECTED, func(c *girc.Client, e girc.Event) {
+		for _, ch := range is.config.Channels {
+			log.Info("joining channel: ", ch)
+			c.Cmd.Join(ch)
+		}
+	})
 	return nil
 }
 
-func (is *IRCService) Connect(host string) error {
-	log := is.log.Named("Connect")
-	log.Info("connecting to server ", host)
-	return is.connection.Connect(host)
-}
-
 func (is *IRCService) RegisterModuleCallbacks() {
-	cbID := is.connection.AddCallback("PRIVMSG", func(event *irc.Event) {
-		go is.moduleService.PRIVMSGCallback(event)
+	cbID := is.client.Handlers.Add(girc.PRIVMSG, func(c *girc.Client, e girc.Event) {
+		go is.moduleService.PRIVMSGCallback(&e)
 	})
 	is.callbacks = append(is.callbacks, cbID)
 }

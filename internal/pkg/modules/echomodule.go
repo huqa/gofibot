@@ -2,24 +2,24 @@ package modules
 
 import (
 	"github.com/huqa/gofibot/internal/pkg/logger"
-	irc "github.com/thoj/go-ircevent"
+	"github.com/lrstanley/girc"
 )
 
 // EchoModule echos input back to channel
 type EchoModule struct {
 	log      logger.Logger
 	commands []string
-	conn     *irc.Connection
+	client   *girc.Client
 	event    string
 	global   bool
 }
 
 // NewEchoModule constructs new EchoModule
-func NewEchoModule(log logger.Logger, conn *irc.Connection) *EchoModule {
+func NewEchoModule(log logger.Logger, client *girc.Client) *EchoModule {
 	return &EchoModule{
 		log:      log.Named("echomodule"),
 		commands: []string{"echo"},
-		conn:     conn,
+		client:   client,
 		event:    "PRIVMSG",
 		global:   false,
 	}
@@ -33,7 +33,7 @@ func (m *EchoModule) Init() error {
 
 // Run echos input to PRIVMSG target channel
 func (m *EchoModule) Run(user, channel, message string, args []string) error {
-	m.conn.Privmsg(channel, user+": "+message)
+	m.client.Cmd.Message(channel, user+": "+message)
 	return nil
 }
 

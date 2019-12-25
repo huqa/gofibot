@@ -20,6 +20,8 @@ type Logger interface {
 	Infof(template string, args ...interface{})
 	Panic(args ...interface{})
 	Panicf(template string, args ...interface{})
+
+	Write(p []byte) (n int, err error)
 }
 
 type LogWrapper struct {
@@ -56,6 +58,11 @@ func (l *LogWrapper) Named(name string) Logger {
 
 func (l *LogWrapper) With(args ...interface{}) Logger {
 	return &LogWrapper{l.SugaredLogger.With(args...)}
+}
+
+func (l *LogWrapper) Write(p []byte) (n int, err error) {
+	l.Info(string(p))
+	return len(p), nil
 }
 
 func Fatal(args ...interface{}) {
