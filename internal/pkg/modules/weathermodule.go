@@ -122,3 +122,7 @@ func (m *WeatherModule) Event() string {
 func (m *WeatherModule) Global() bool {
 	return m.global
 }
+
+func (m *WeatherModule) Schedule() (bool, time.Time) {
+	return false, time.Time{}
+}

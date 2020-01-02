@@ -1,6 +1,8 @@
 package gofibot
 
 import (
+	"database/sql"
+
 	"github.com/huqa/gofibot/internal/pkg/config"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
@@ -20,10 +22,11 @@ type IRCService struct {
 	moduleService ModuleServiceInterface
 	config        config.BotConfiguration
 	client        *girc.Client
+	db            *sql.DB
 	callbacks     []string
 }
 
-func NewIRCService(log logger.Logger, cfg config.BotConfiguration) IRCServiceInterface {
+func NewIRCService(log logger.Logger, db *sql.DB, cfg config.BotConfiguration) IRCServiceInterface {
 
 	config := girc.Config{
 		Nick:   cfg.Nick,
@@ -44,6 +47,7 @@ func NewIRCService(log logger.Logger, cfg config.BotConfiguration) IRCServiceInt
 		callbacks:     make([]string, 0),
 		log:           log.Named("ircservice"),
 		moduleService: NewModuleService(log, cfg.Prefix),
+		db:            db,
 	}
 }
 

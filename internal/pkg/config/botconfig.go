@@ -8,14 +8,15 @@ import (
 )
 
 type BotConfiguration struct {
-	Nick        string   `json:"nick"`
-	Ident       string   `json:"ident"`
-	Realname    string   `json:"realname"`
-	Version     string   `json:"version"`
-	QuitMessage string   `json:"quitMessage"`
-	Server      string   `json:"server"`
-	Channels    []string `json:"channels"`
-	Prefix      string   `json:"prefix"`
+	Nick         string   `json:"nick"`
+	Ident        string   `json:"ident"`
+	Realname     string   `json:"realname"`
+	Version      string   `json:"version"`
+	QuitMessage  string   `json:"quitMessage"`
+	Server       string   `json:"server"`
+	Channels     []string `json:"channels"`
+	Prefix       string   `json:"prefix"`
+	DatabaseFile string   `json:"databaseFile"`
 }
 
 func (c BotConfiguration) String() string {

@@ -93,3 +93,7 @@ func (m *URLTitleModule) Event() string {
 func (m *URLTitleModule) Global() bool {
 	return m.global
 }
+
+func (m *URLTitleModule) Schedule() (bool, time.Time) {
+	return false, time.Time{}
+}
