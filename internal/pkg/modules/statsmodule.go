@@ -2,6 +2,7 @@ package modules
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 
@@ -23,6 +24,9 @@ const (
 	INSERT INTO stats_stats(channel, nick, hostmask, words) VALUES (?, ?, ?, ?) 
 	ON CONFLICT(channel, nick, hostmask) DO UPDATE SET words = words + excluded.words;
 	`
+	top10WordStatsStmt string = `
+	SELECT nick, hostmask, words FROM stats_stats WHERE channel = ? ORDER BY words DESC LIMIT 10;
+	`
 )
 
 // StatsModule handles irc channel statistics
@@ -39,10 +43,11 @@ type StatsModule struct {
 func NewStatsModule(log logger.Logger, client *girc.Client, db *sql.DB) *StatsModule {
 	return &StatsModule{
 		&Module{
-			log:    log.Named("Statsmodule"),
-			client: client,
-			global: true,
-			event:  "PRIVMSG",
+			log:      log.Named("Statsmodule"),
+			client:   client,
+			global:   true,
+			event:    "PRIVMSG",
+			commands: []string{"stats", "toptod"},
 		},
 		db,
 		false,
@@ -70,10 +75,20 @@ func (m *StatsModule) Stop() error {
 
 // Run Stats input to PRIVMSG target channel
 func (m *StatsModule) Run(channel, hostmask, user, command, message string, args []string) error {
-	err := m.upsert(channel, user, hostmask, len(strings.Split(message, " ")))
+	// handle global command -> upsert word count
+	if command == "" {
+		err := m.upsert(channel, user, hostmask, len(strings.Split(message, " ")))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	output, err := m.selectWordStats(channel)
 	if err != nil {
+		m.log.Error("can't fetch word stats: ", err)
 		return err
 	}
+	m.client.Cmd.Message(channel, output)
 	return nil
 }
 
@@ -113,4 +128,38 @@ func (m *StatsModule) upsert(channel, nick, hostmask string, words int) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+func (m *StatsModule) selectWordStats(channel string) (output string, err error) {
+	stmt, err := m.db.Prepare(top10WordStatsStmt)
+	if err != nil {
+		return output, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query(channel)
+	if err != nil {
+		return output, err
+	}
+	defer rows.Close()
+
+	var (
+		nick     string
+		hostmask string
+		words    int
+		/*total    int
+		mean     int
+		median   int*/
+	)
+
+	i := 1
+	output = ""
+	for rows.Next() {
+		err = rows.Scan(&nick, &hostmask, &words)
+		if err != nil {
+			return output, err
+		}
+		output += fmt.Sprintf("%d. %s(%d) ", i, nick, words)
+		i++
+	}
+	return output, nil
 }
