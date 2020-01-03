@@ -12,6 +12,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/lrstanley/girc v0.0.0-20190801035559-4fc93959e1a7
+	github.com/mattn/go-sqlite3 v2.0.2+incompatible
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/temoto/robotstxt v1.1.1 // indirect

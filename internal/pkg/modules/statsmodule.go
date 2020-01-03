@@ -2,6 +2,7 @@ package modules
 
 import (
 	"database/sql"
+        "strings"
 	"time"
 
 	"github.com/huqa/gofibot/internal/pkg/logger"
@@ -45,7 +46,7 @@ func NewStatsModule(log logger.Logger, client *girc.Client, db *sql.DB) *StatsMo
 		commands:  []string{"toptod", "stats"},
 		client:    client,
 		event:     "PRIVMSG",
-		global:    false,
+		global:    true,
 		db:        db,
 		scheduled: false,
 		schedule:  time.Now(),
@@ -73,7 +74,7 @@ func (m *StatsModule) Stop() error {
 // Run Stats input to PRIVMSG target channel
 func (m *StatsModule) Run(channel, hostmask, user, command, message string, args []string) error {
 	//m.client.Cmd.Message(channel, user+": "+message)
-	err := m.upsert(channel, user, hostmask, len(args))
+	err := m.upsert(channel, user, hostmask, len(strings.Split(message, " ")))
 	if err != nil {
 		return err
 	}
