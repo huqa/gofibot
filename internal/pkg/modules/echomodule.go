@@ -9,21 +9,17 @@ import (
 
 // EchoModule echos input back to channel
 type EchoModule struct {
-	log      logger.Logger
-	commands []string
-	client   *girc.Client
-	event    string
-	global   bool
+	Module
 }
 
 // NewEchoModule constructs new EchoModule
 func NewEchoModule(log logger.Logger, client *girc.Client) *EchoModule {
 	return &EchoModule{
-		log:      log.Named("echomodule"),
-		commands: []string{"echo"},
-		client:   client,
-		event:    "PRIVMSG",
-		global:   false,
+		Module{
+			log:      log.Named("echomodule"),
+			commands: []string{"echo"},
+			client:   client,
+		},
 	}
 }
 

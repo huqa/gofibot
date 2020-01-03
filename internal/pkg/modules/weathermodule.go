@@ -13,11 +13,7 @@ import (
 
 // WeatherModule fetches weather from an outside service
 type WeatherModule struct {
-	log              logger.Logger
-	global           bool
-	event            string
-	commands         []string
-	client           *girc.Client
+	Module
 	weatherCollector *colly.Collector
 	url              string
 	weatherOptions   string
@@ -37,14 +33,15 @@ type WeatherData struct {
 // NewWeatherModule constructs new WeatherModule
 func NewWeatherModule(log logger.Logger, client *girc.Client) *WeatherModule {
 	return &WeatherModule{
-		log:            log.Named("weathermodule"),
-		commands:       []string{"w", "sää", "saa"},
-		client:         client,
-		url:            "http://wttr.in/%s",
-		weatherOptions: "?format=%l,%C,%t,%h,%w,%p&lang=fi",
-		event:          "PRIVMSG",
-		global:         false,
-		wdResponses:    make(map[string]*WeatherData, 0),
+		Module{
+			log:      log.Named("weathermodule"),
+			commands: []string{"w", "sää", "saa"},
+			client:   client,
+		},
+		nil,
+		"http://wttr.in/%s",
+		"?format=%l,%C,%t,%h,%w,%p&lang=fi",
+		make(map[string]*WeatherData, 0),
 	}
 }
 

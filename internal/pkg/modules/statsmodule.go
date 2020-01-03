@@ -2,7 +2,7 @@ package modules
 
 import (
 	"database/sql"
-        "strings"
+	"strings"
 	"time"
 
 	"github.com/huqa/gofibot/internal/pkg/logger"
@@ -27,29 +27,25 @@ const (
 
 // StatsModule handles irc channel statistics
 type StatsModule struct {
-	log      logger.Logger
-	commands []string
-	client   *girc.Client
-	event    string
-	global   bool
+	Module
+
+	db *sql.DB
 
 	scheduled bool
 	schedule  time.Time
-
-	db *sql.DB
 }
 
 // NewStatsModule constructs a new StatsModule
 func NewStatsModule(log logger.Logger, client *girc.Client, db *sql.DB) *StatsModule {
 	return &StatsModule{
-		log:       log.Named("Statsmodule"),
-		commands:  []string{"toptod", "stats"},
-		client:    client,
-		event:     "PRIVMSG",
-		global:    true,
-		db:        db,
-		scheduled: false,
-		schedule:  time.Now(),
+		Module{
+			log:    log.Named("Statsmodule"),
+			client: client,
+			global: true,
+		},
+		db,
+		false,
+		time.Time{},
 	}
 }
 
@@ -73,12 +69,10 @@ func (m *StatsModule) Stop() error {
 
 // Run Stats input to PRIVMSG target channel
 func (m *StatsModule) Run(channel, hostmask, user, command, message string, args []string) error {
-	//m.client.Cmd.Message(channel, user+": "+message)
 	err := m.upsert(channel, user, hostmask, len(strings.Split(message, " ")))
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -102,6 +96,7 @@ func (m *StatsModule) Schedule() (bool, time.Time) {
 	return false, time.Time{}
 }
 
+// upsert inserts or updates word counts on db
 func (m *StatsModule) upsert(channel, nick, hostmask string, words int) error {
 	tx, err := m.db.Begin()
 	if err != nil {
