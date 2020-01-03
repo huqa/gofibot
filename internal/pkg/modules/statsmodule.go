@@ -42,6 +42,7 @@ func NewStatsModule(log logger.Logger, client *girc.Client, db *sql.DB) *StatsMo
 			log:    log.Named("Statsmodule"),
 			client: client,
 			global: true,
+			event:  "PRIVMSG",
 		},
 		db,
 		false,

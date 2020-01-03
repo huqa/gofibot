@@ -37,6 +37,7 @@ func NewWeatherModule(log logger.Logger, client *girc.Client) *WeatherModule {
 			log:      log.Named("weathermodule"),
 			commands: []string{"w", "sää", "saa"},
 			client:   client,
+			event:    "PRIVMSG",
 		},
 		nil,
 		"http://wttr.in/%s",

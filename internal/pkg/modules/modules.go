@@ -18,7 +18,7 @@ type ModuleInterface interface {
 	Schedule() (bool, time.Time)
 }
 
-// Module defines a basic struct for modules
+// Module defines basic fields for modules
 type Module struct {
 	log      logger.Logger
 	commands []string

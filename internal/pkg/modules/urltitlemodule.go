@@ -28,6 +28,7 @@ func NewURLTitleModule(log logger.Logger, client *girc.Client) *URLTitleModule {
 			log:    log.Named("urltitlemodule"),
 			client: client,
 			global: true,
+			event:  "PRIVMSG",
 		},
 		nil,
 		make(map[string]URLTitle, 0),

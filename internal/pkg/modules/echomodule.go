@@ -19,6 +19,7 @@ func NewEchoModule(log logger.Logger, client *girc.Client) *EchoModule {
 			log:      log.Named("echomodule"),
 			commands: []string{"echo"},
 			client:   client,
+			event:    "PRIVMSG",
 		},
 	}
 }
