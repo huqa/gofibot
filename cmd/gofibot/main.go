@@ -53,7 +53,7 @@ func main() {
 	}
 	defer db.Close()
 
-	_, err = gofibot.NewApplication(ctx, log, appConfig.BotConfig)
+	_, err = gofibot.NewApplication(ctx, log, db, appConfig.BotConfig)
 	if err != nil {
 		log.Fatal("failed to create gofibot ", err)
 		os.Exit(1)
