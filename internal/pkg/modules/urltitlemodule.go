@@ -54,9 +54,14 @@ func (m *URLTitleModule) Init() error {
 	return nil
 }
 
+// Stop is run when module is stopped
+func (m *URLTitleModule) Stop() error {
+	return nil
+}
+
 // Run shouts url titles to PRIVMSG in target channel
 // TODO: imdb url support
-func (m *URLTitleModule) Run(user, channel, message string, args []string) error {
+func (m *URLTitleModule) Run(channel, hostmask, user, command, message string, args []string) error {
 	//m.conn.Privmsg(channel, user+": "+message)
 	URL, err := url.Parse(message)
 	if err != nil {

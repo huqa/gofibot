@@ -22,7 +22,7 @@ func NewApplication(
 	db *sql.DB,
 	botConfig config.BotConfiguration,
 ) (a *Application, err error) {
-	ircService := NewIRCService(log, botConfig)
+	ircService := NewIRCService(log, db, botConfig)
 	err = ircService.Init()
 	if err != nil {
 		log.Error("error initializing irc service")

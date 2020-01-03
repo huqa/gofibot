@@ -1,10 +1,11 @@
 package gofibot
 
 import (
+	"strings"
+
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
 	"github.com/lrstanley/girc"
-	"strings"
 )
 
 // ModuleServiceInterface defines an interface for ModuleService
@@ -12,6 +13,7 @@ type ModuleServiceInterface interface {
 	RegisterModules(botmodules ...modules.ModuleInterface) error
 	Command(string) modules.ModuleInterface
 	PRIVMSGCallback(e *girc.Event)
+	StopModules() error
 }
 
 // ModuleService handles gofibots command based modules
@@ -19,6 +21,7 @@ type ModuleService struct {
 	log            logger.Logger
 	commands       map[string]modules.ModuleInterface
 	globalCommands []modules.ModuleInterface
+	modules        []modules.ModuleInterface
 	callbacks      []int
 	Prefix         string
 }
@@ -31,6 +34,18 @@ func NewModuleService(log logger.Logger, prefix string) ModuleServiceInterface {
 		commands:       make(map[string]modules.ModuleInterface, 0),
 		Prefix:         prefix,
 	}
+}
+
+// StopModules stops all registered modules
+func (m *ModuleService) StopModules() error {
+	m.log.Info("stopping modules")
+	for _, module := range m.modules {
+		err := module.Stop()
+		if err != nil {
+			m.log.Error("error stopping module: ", err)
+		}
+	}
+	return nil
 }
 
 // RegisterModules registers modules to ModuleService
@@ -50,6 +65,7 @@ func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) e
 			return err
 		}
 	}
+	m.modules = botmodules
 	return nil
 }
 
@@ -75,8 +91,8 @@ func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
 	message := strings.Join(e.Params[1:], " ")
 	if !strings.HasPrefix(message, m.Prefix) {
 		for _, pcmd := range m.globalCommands {
-			m.log.Debug(e.Source.Name, channel, message, e.Params[1:])
-			err := pcmd.Run(e.Source.Name, channel, message, e.Params[1:])
+			//m.log.Debug(e.Source.Name, channel, message, e.Params[1:])
+			err := pcmd.Run(channel, e.Source.String(), e.Source.Name, "", message, e.Params[1:])
 			if err != nil {
 				m.log.Error("module run error: ", err)
 			}
@@ -91,7 +107,7 @@ func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
 		if msm.Event() != "PRIVMSG" {
 			return
 		}
-		err := msm.Run(e.Source.Name, channel, message, e.Params[1:])
+		err := msm.Run(channel, e.Source.String(), e.Source.Name, command, message, e.Params[1:])
 		if err != nil {
 			m.log.Error("module run error: ", err)
 		}

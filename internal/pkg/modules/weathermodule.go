@@ -76,12 +76,17 @@ func (m *WeatherModule) Init() error {
 	return nil
 }
 
+// Stop is run when module is stopped
+func (m *WeatherModule) Stop() error {
+	return nil
+}
+
 // Run sends weather data to PRIVMSG target channel
-func (m *WeatherModule) Run(user, channel, message string, args []string) error {
+func (m *WeatherModule) Run(channel, hostmask, user, command, message string, args []string) error {
 	if len(args) == 0 {
 		return nil
 	}
-	weatherURL := fmt.Sprintf(m.url, strings.Join(args[:], " "))
+	weatherURL := fmt.Sprintf(m.url, message)
 	weatherURL += m.weatherOptions
 	ID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	ctx := colly.NewContext()

@@ -1,6 +1,8 @@
 package modules
 
 import (
+	"time"
+
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/lrstanley/girc"
 )
@@ -31,8 +33,13 @@ func (m *EchoModule) Init() error {
 	return nil
 }
 
+// Stop is run when module is stopped
+func (m *EchoModule) Stop() error {
+	return nil
+}
+
 // Run echos input to PRIVMSG target channel
-func (m *EchoModule) Run(user, channel, message string, args []string) error {
+func (m *EchoModule) Run(channel, hostmask, user, command, message string, args []string) error {
 	m.client.Cmd.Message(channel, user+": "+message)
 	return nil
 }
@@ -50,4 +57,8 @@ func (m *EchoModule) Event() string {
 // Global returns true if this module is a global command
 func (m *EchoModule) Global() bool {
 	return m.global
+}
+
+func (m *EchoModule) Schedule() (bool, time.Time) {
+	return false, time.Time{}
 }

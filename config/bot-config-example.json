@@ -6,7 +6,7 @@
     "quitMessage": "bye!",
     "server": "irc.atw-inter.net",
     "prefix": "!",
-    "databaseFile": "gofibot.db",
+    "databaseFile": "example.db",
     "channels": [
         "#mychannel"
     ]

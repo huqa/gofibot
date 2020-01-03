@@ -11,6 +11,7 @@ import (
 
 type IRCServiceInterface interface {
 	Init() error
+	Stop() error
 	Connect() error
 	LoadModules() error
 	JoinChannels() error
@@ -75,6 +76,12 @@ func (is *IRCService) Init() error {
 	return nil
 }
 
+func (is *IRCService) Stop() error {
+	is.client.Quit("stopping gofi")
+	is.moduleService.StopModules()
+	return nil
+}
+
 func (is *IRCService) Connect() error {
 	log := is.log.Named("Connect")
 	log.Info("connecting to server: ", is.config.Server)
@@ -86,7 +93,8 @@ func (is *IRCService) LoadModules() error {
 	log.Info("loading modules")
 	err := is.moduleService.RegisterModules(
 		modules.NewEchoModule(is.log, is.client),
-		modules.NewWeatherModule(is.log, is.client),
+		//modules.NewWeatherModule(is.log, is.client),
+		modules.NewStatsModule(is.log, is.client, is.db),
 		modules.NewURLTitleModule(is.log, is.client),
 	)
 	if err != nil {
