@@ -54,7 +54,7 @@ func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) e
 	for _, md := range botmodules {
 		if md.Global() {
 			m.globalCommands = append(m.globalCommands, md)
-			m.log.Infof("registered public command %s", md)
+			m.log.Infof("registered public command")
 		}
 		for _, cmd := range md.Commands() {
 			m.commands[cmd] = md

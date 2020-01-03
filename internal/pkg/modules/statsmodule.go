@@ -27,7 +27,7 @@ const (
 
 // StatsModule handles irc channel statistics
 type StatsModule struct {
-	Module
+	*Module
 
 	db *sql.DB
 
@@ -38,7 +38,7 @@ type StatsModule struct {
 // NewStatsModule constructs a new StatsModule
 func NewStatsModule(log logger.Logger, client *girc.Client, db *sql.DB) *StatsModule {
 	return &StatsModule{
-		Module{
+		&Module{
 			log:    log.Named("Statsmodule"),
 			client: client,
 			global: true,

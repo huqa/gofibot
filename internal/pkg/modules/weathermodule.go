@@ -13,7 +13,7 @@ import (
 
 // WeatherModule fetches weather from an outside service
 type WeatherModule struct {
-	Module
+	*Module
 	weatherCollector *colly.Collector
 	url              string
 	weatherOptions   string
@@ -33,7 +33,7 @@ type WeatherData struct {
 // NewWeatherModule constructs new WeatherModule
 func NewWeatherModule(log logger.Logger, client *girc.Client) *WeatherModule {
 	return &WeatherModule{
-		Module{
+		&Module{
 			log:      log.Named("weathermodule"),
 			commands: []string{"w", "sää", "saa"},
 			client:   client,

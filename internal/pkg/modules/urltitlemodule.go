@@ -13,7 +13,7 @@ import (
 // URLTitleModule handles url titles scraped from PRIVMSGs
 // Todo cache
 type URLTitleModule struct {
-	Module
+	*Module
 	titleCollector *colly.Collector
 	responses      map[string]URLTitle
 }
@@ -24,7 +24,7 @@ type URLTitle string
 // NewURLTitleModule constructs new URLTitleModule
 func NewURLTitleModule(log logger.Logger, client *girc.Client) *URLTitleModule {
 	return &URLTitleModule{
-		Module{
+		&Module{
 			log:    log.Named("urltitlemodule"),
 			client: client,
 			global: true,

@@ -9,13 +9,13 @@ import (
 
 // EchoModule echos input back to channel
 type EchoModule struct {
-	Module
+	*Module
 }
 
 // NewEchoModule constructs new EchoModule
 func NewEchoModule(log logger.Logger, client *girc.Client) *EchoModule {
 	return &EchoModule{
-		Module{
+		&Module{
 			log:      log.Named("echomodule"),
 			commands: []string{"echo"},
 			client:   client,
