@@ -96,6 +96,7 @@ func (is *IRCService) LoadModules() error {
 		//modules.NewWeatherModule(is.log, is.client),
 		modules.NewStatsModule(is.log, is.client, is.db),
 		modules.NewURLTitleModule(is.log, is.client),
+		modules.NewDateModule(is.log, is.client),
 	)
 	if err != nil {
 		return err
