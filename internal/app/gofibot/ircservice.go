@@ -53,23 +53,22 @@ func NewIRCService(log logger.Logger, db *sql.DB, cfg config.BotConfiguration) I
 }
 
 func (is *IRCService) Init() error {
-	log := is.log.Named("Init")
-	log.Info("init bot")
+	is.log.Info("init bot")
 
 	err := is.LoadModules()
 	if err != nil {
-		log.Error("can't load modules ", err)
+		is.log.Error("can't load modules ", err)
 		return err
 	}
 	err = is.JoinChannels()
 	if err != nil {
-		log.Error("error joining channels ", err)
+		is.log.Error("error joining channels ", err)
 		return err
 	}
 
 	err = is.Connect()
 	if err != nil {
-		log.Error("error connecting to server ", err)
+		is.log.Error("error connecting to server ", err)
 		return err
 	}
 
@@ -83,14 +82,12 @@ func (is *IRCService) Stop() error {
 }
 
 func (is *IRCService) Connect() error {
-	log := is.log.Named("Connect")
-	log.Info("connecting to server: ", is.config.Server)
+	is.log.Info("connecting to server: ", is.config.Server)
 	return is.client.Connect()
 }
 
 func (is *IRCService) LoadModules() error {
-	log := is.log.Named("LoadModules")
-	log.Info("loading modules")
+	is.log.Info("loading modules")
 	err := is.moduleService.RegisterModules(
 		modules.NewEchoModule(is.log, is.client),
 		//modules.NewWeatherModule(is.log, is.client),
@@ -106,12 +103,11 @@ func (is *IRCService) LoadModules() error {
 }
 
 func (is *IRCService) JoinChannels() error {
-	log := is.log.Named("JoinChannels")
-	log.Info("joining channels when connected: ", is.config.Channels)
+	is.log.Info("joining channels when connected: ", is.config.Channels)
 
 	is.client.Handlers.Add(girc.CONNECTED, func(c *girc.Client, e girc.Event) {
 		for _, ch := range is.config.Channels {
-			log.Info("joining channel: ", ch)
+			is.log.Info("joining channel: ", ch)
 			c.Cmd.Join(ch)
 		}
 	})

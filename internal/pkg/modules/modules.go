@@ -15,7 +15,7 @@ type ModuleInterface interface {
 	Event() string
 	Commands() []string
 	Global() bool
-	Schedule() (bool, time.Time)
+	Schedule() (bool, time.Time, time.Duration)
 }
 
 // Module defines basic fields for modules

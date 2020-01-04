@@ -78,8 +78,8 @@ func (m *DateModule) Global() bool {
 }
 
 // Schedule
-func (m *DateModule) Schedule() (bool, time.Time) {
-	return false, time.Time{}
+func (m *DateModule) Schedule() (bool, time.Time, time.Duration) {
+	return true, time.Time{}, 0
 }
 
 func (m *DateModule) finnishWeekday(weekday string) string {

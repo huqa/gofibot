@@ -108,8 +108,8 @@ func (m *StatsModule) Global() bool {
 }
 
 // Schedule returns true, time.Time if this module is scheduled to be run at time.Time
-func (m *StatsModule) Schedule() (bool, time.Time) {
-	return false, time.Time{}
+func (m *StatsModule) Schedule() (bool, time.Time, time.Duration) {
+	return false, time.Time{}, 0
 }
 
 // upsert inserts or updates word counts on db

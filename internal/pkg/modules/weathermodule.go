@@ -126,6 +126,6 @@ func (m *WeatherModule) Global() bool {
 	return m.global
 }
 
-func (m *WeatherModule) Schedule() (bool, time.Time) {
-	return false, time.Time{}
+func (m *WeatherModule) Schedule() (bool, time.Time, time.Duration) {
+	return false, time.Time{}, 0
 }

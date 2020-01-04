@@ -56,6 +56,6 @@ func (m *EchoModule) Global() bool {
 	return m.global
 }
 
-func (m *EchoModule) Schedule() (bool, time.Time) {
-	return false, time.Time{}
+func (m *EchoModule) Schedule() (bool, time.Time, time.Duration) {
+	return false, time.Time{}, 0
 }
