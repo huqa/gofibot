@@ -15,9 +15,7 @@ type DateModule struct {
 }
 
 const (
-	dateString string = `
-	Tänään on %s %s (viikko %d) vuoden %d. päivä.
-	`
+	dateString string = `Tänään on %s %s (viikko %d) vuoden %d. päivä.`
 )
 
 // NewDateModule constructs new DateModule
@@ -55,7 +53,7 @@ func (m *DateModule) Run(channel, hostmask, user, command, message string, args 
 	//m.client.Cmd.Message(channel, user+": "+message)
 	now := time.Now().In(m.location)
 	weekday := m.finnishWeekday(now.Weekday().String())
-	date := now.Format("02.01.2006")
+	date := now.Format("2.1.2006")
 	yearDay := now.YearDay()
 	_, week := now.ISOWeek()
 
