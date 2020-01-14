@@ -47,7 +47,7 @@ func NewIRCService(log logger.Logger, db *sql.DB, cfg config.BotConfiguration) I
 		client:        client,
 		callbacks:     make([]string, 0),
 		log:           log.Named("ircservice"),
-		moduleService: NewModuleService(log, cfg.Prefix),
+		moduleService: NewModuleService(log, cfg.Channels, cfg.Prefix),
 		db:            db,
 	}
 }
@@ -106,7 +106,7 @@ func (is *IRCService) JoinChannels() error {
 	is.log.Info("joining channels when connected: ", is.config.Channels)
 
 	is.client.Handlers.Add(girc.CONNECTED, func(c *girc.Client, e girc.Event) {
-		for _, ch := range is.config.Channels {
+		for _, ch := range is.Channels() {
 			is.log.Info("joining channel: ", ch)
 			c.Cmd.Join(ch)
 		}
@@ -119,4 +119,8 @@ func (is *IRCService) RegisterModuleCallbacks() {
 		go is.moduleService.PRIVMSGCallback(&e)
 	})
 	is.callbacks = append(is.callbacks, cbID)
+}
+
+func (is *IRCService) Channels() []string {
+	return is.config.Channels
 }

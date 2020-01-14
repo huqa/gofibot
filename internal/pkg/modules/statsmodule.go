@@ -35,8 +35,7 @@ type StatsModule struct {
 
 	db *sql.DB
 
-	scheduled bool
-	schedule  time.Time
+	location *time.Location
 }
 
 // NewStatsModule constructs a new StatsModule
@@ -50,8 +49,7 @@ func NewStatsModule(log logger.Logger, client *girc.Client, db *sql.DB) *StatsMo
 			commands: []string{"stats", "toptod"},
 		},
 		db,
-		false,
-		time.Time{},
+		nil,
 	}
 }
 
@@ -64,6 +62,13 @@ func (m *StatsModule) Init() error {
 		m.log.Error("db error ", err)
 		return err
 	}
+
+	loc, err := time.LoadLocation("Europe/Helsinki")
+	if err != nil {
+		m.log.Error("couldn't load time zone for helsinki: ", err)
+		return err
+	}
+	m.location = loc
 
 	return nil
 }

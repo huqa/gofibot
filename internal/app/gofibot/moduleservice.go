@@ -2,6 +2,7 @@ package gofibot
 
 import (
 	"strings"
+	"time"
 
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
@@ -19,19 +20,25 @@ type ModuleServiceInterface interface {
 // ModuleService handles gofibots command based modules
 type ModuleService struct {
 	log            logger.Logger
+	channels       []string
 	commands       map[string]modules.ModuleInterface
 	globalCommands []modules.ModuleInterface
 	modules        []modules.ModuleInterface
 	callbacks      []int
+	tickers        []*time.Ticker
+	timers         []*time.Timer
 	Prefix         string
 }
 
 // NewModuleService constructs new ModuleService
-func NewModuleService(log logger.Logger, prefix string) ModuleServiceInterface {
+func NewModuleService(log logger.Logger, channels []string, prefix string) ModuleServiceInterface {
 	return &ModuleService{
 		log:            log.Named("moduleservice"),
+		channels:       channels,
 		globalCommands: make([]modules.ModuleInterface, 0),
 		commands:       make(map[string]modules.ModuleInterface, 0),
+		tickers:        make([]*time.Ticker, 0),
+		timers:         make([]*time.Timer, 0),
 		Prefix:         prefix,
 	}
 }
@@ -63,6 +70,14 @@ func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) e
 		err := md.Init()
 		if err != nil {
 			return err
+		}
+		hasSchedule, nextRunTime, duration := md.Schedule()
+		if hasSchedule {
+			now := time.Now()
+			nextRunDuration := nextRunTime.Sub(now)
+			timer := time.AfterFunc(nextRunDuration, func() { m.schedulePRIVMSG(md, duration) })
+			m.timers = append(m.timers, timer)
+
 		}
 	}
 	m.modules = botmodules
@@ -110,6 +125,16 @@ func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
 		err := msm.Run(channel, e.Source.String(), e.Source.Name, command, message, e.Params[1:])
 		if err != nil {
 			m.log.Error("module run error: ", err)
+		}
+	}
+}
+
+func (m *ModuleService) schedulePRIVMSG(module modules.ModuleInterface, duration time.Duration) {
+	ticker := time.NewTicker(duration)
+	m.tickers = append(m.tickers, ticker)
+	for ; true; <-ticker.C {
+		for _, channel := range m.channels {
+			module.Run(channel, "", "", module.Commands()[0], "", make([]string, 0))
 		}
 	}
 }

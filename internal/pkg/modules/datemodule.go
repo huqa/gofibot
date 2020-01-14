@@ -18,6 +18,8 @@ const (
 	dateString string = `Tänään on %s %s (viikko %d) vuoden %d. päivä.`
 )
 
+var ignoredChannels = map[string]int{}
+
 // NewDateModule constructs new DateModule
 func NewDateModule(log logger.Logger, client *girc.Client) *DateModule {
 	return &DateModule{
@@ -50,7 +52,9 @@ func (m *DateModule) Stop() error {
 
 // Run Dates input to PRIVMSG target channel
 func (m *DateModule) Run(channel, hostmask, user, command, message string, args []string) error {
-	//m.client.Cmd.Message(channel, user+": "+message)
+	if _, ok := ignoredChannels[channel]; ok {
+		return nil
+	}
 	now := time.Now().In(m.location)
 	weekday := m.finnishWeekday(now.Weekday().String())
 	date := now.Format("2.1.2006")
@@ -79,7 +83,13 @@ func (m *DateModule) Global() bool {
 
 // Schedule
 func (m *DateModule) Schedule() (bool, time.Time, time.Duration) {
-	return true, time.Time{}, 0
+	/*dur, _ := time.ParseDuration("24h")
+	t := time.Now()
+	n := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, m.location)
+	n = n.Add(dur)*/
+	dur, _ := time.ParseDuration("2m")
+	n := time.Now().Add(dur)
+	return true, n, dur
 }
 
 func (m *DateModule) finnishWeekday(weekday string) string {
