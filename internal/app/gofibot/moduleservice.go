@@ -100,11 +100,11 @@ func (m *ModuleService) Command(str string) modules.ModuleInterface {
 func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
 
 	channel := e.Params[0]
-        params := strings.Split(e.Params[1], " ")
+	params := strings.Split(e.Params[1], " ")
 	if !strings.HasPrefix(e.Params[1], m.Prefix) {
 		for _, pcmd := range m.globalCommands {
 			//m.log.Debug(e.Source.Name, channel, message, e.Params[1:])
-                        err := pcmd.Run(channel, e.Source.String(), e.Source.Name, "", params[1:])
+			err := pcmd.Run(channel, e.Source.String(), e.Source.Name, "", params[1:])
 			if err != nil {
 				m.log.Error("module run error: ", err)
 			}
@@ -119,7 +119,7 @@ func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
 		if msm.Event() != "PRIVMSG" {
 			return
 		}
-                err := msm.Run(channel, e.Source.String(), e.Source.Name, command, params[1:])
+		err := msm.Run(channel, e.Source.String(), e.Source.Name, command, params[1:])
 		if err != nil {
 			m.log.Error("module run error: ", err)
 		}

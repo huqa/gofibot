@@ -53,8 +53,8 @@ func (m *WeatherModule) Init() error {
 	c.OnResponse(m.weatherResponseCallback)
 	c.OnError(func(r *colly.Response, err error) {
 		m.log.Error("error: ", r.StatusCode, err)
-                channel := r.Ctx.Get("Channel")
-                m.client.Cmd.Message(channel, "!w - internet says: error no bonus")
+		channel := r.Ctx.Get("Channel")
+		m.client.Cmd.Message(channel, "!w - internet says: error no bonus")
 	})
 	m.weatherCollector = c
 	return nil
@@ -70,7 +70,7 @@ func (m *WeatherModule) Run(channel, hostmask, user, command string, args []stri
 	if len(args) == 0 {
 		return nil
 	}
-        message := strings.Join(args, " ")
+	message := strings.Join(args, " ")
 	weatherURL := fmt.Sprintf(m.url, message)
 	weatherURL += m.weatherOptions
 	ctx := colly.NewContext()
