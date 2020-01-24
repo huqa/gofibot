@@ -3,7 +3,6 @@ package modules
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/huqa/gofibot/internal/pkg/logger"
@@ -79,10 +78,10 @@ func (m *StatsModule) Stop() error {
 }
 
 // Run Stats input to PRIVMSG target channel
-func (m *StatsModule) Run(channel, hostmask, user, command, message string, args []string) error {
+func (m *StatsModule) Run(channel, hostmask, user, command string, args []string) error {
 	// handle global command -> upsert word count
 	if command == "" {
-		err := m.upsert(channel, user, hostmask, len(strings.Split(message, " ")))
+		err := m.upsert(channel, user, hostmask, len(args))
 		if err != nil {
 			return err
 		}

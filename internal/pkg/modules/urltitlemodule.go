@@ -3,6 +3,7 @@ package modules
 import (
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -59,11 +60,10 @@ func (m *URLTitleModule) Stop() error {
 
 // Run shouts url titles to PRIVMSG in target channel
 // TODO: imdb url support
-func (m *URLTitleModule) Run(channel, hostmask, user, command, message string, args []string) error {
-	//m.conn.Privmsg(channel, user+": "+message)
+func (m *URLTitleModule) Run(channel, hostmask, user, command string, args []string) error {
+	message := strings.Join(args, " ")
 	URL, err := url.Parse(message)
 	if err != nil {
-		m.log.Debug("checked privmsg for urltitle - not found")
 		return nil
 	}
 	ID := strconv.FormatInt(time.Now().UnixNano(), 10)

@@ -45,6 +45,10 @@ func NewModuleService(log logger.Logger, channels []string, prefix string) Modul
 
 // StopModules stops all registered modules
 func (m *ModuleService) StopModules() error {
+	m.log.Info("stopping tickers")
+	for _, ticker := range m.tickers {
+		ticker.Stop()
+	}
 	m.log.Info("stopping modules")
 	for _, module := range m.modules {
 		err := module.Stop()
@@ -75,9 +79,9 @@ func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) e
 		if hasSchedule {
 			now := time.Now()
 			nextRunDuration := nextRunTime.Sub(now)
+			m.log.Info("scheduling module to run at ", now.Add(nextRunDuration))
 			timer := time.AfterFunc(nextRunDuration, func() { m.schedulePRIVMSG(md, duration) })
 			m.timers = append(m.timers, timer)
-
 		}
 	}
 	m.modules = botmodules
@@ -94,20 +98,12 @@ func (m *ModuleService) Command(str string) modules.ModuleInterface {
 
 // PRIVMSGCallback calls a modules Run function if event or command matches
 func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
-	/*m.log.Debug("event ", e)
-	m.log.Debug("event ", e.String())
-	m.log.Debug("event", e.Command)
-	m.log.Debug("event", e.Params)
-	m.log.Debug("source", e.Source.Name)
-	m.log.Debug("chan", e.Params[0])
-	m.log.Debug("args", e.Params[1:])*/
 
 	channel := e.Params[0]
-	message := strings.Join(e.Params[1:], " ")
-	if !strings.HasPrefix(message, m.Prefix) {
+	if !strings.HasPrefix(e.Params[1], m.Prefix) {
 		for _, pcmd := range m.globalCommands {
 			//m.log.Debug(e.Source.Name, channel, message, e.Params[1:])
-			err := pcmd.Run(channel, e.Source.String(), e.Source.Name, "", message, e.Params[1:])
+			err := pcmd.Run(channel, e.Source.String(), e.Source.Name, "", e.Params[1:])
 			if err != nil {
 				m.log.Error("module run error: ", err)
 			}
@@ -115,14 +111,14 @@ func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
 		return
 	}
 
-	withoutPrefix := strings.Replace(message, m.Prefix, "", 1)
+	withoutPrefix := strings.Replace(e.Params[1], m.Prefix, "", 1)
 	command := strings.Split(withoutPrefix, " ")[0]
 	msm := m.Command(command)
 	if msm != nil {
 		if msm.Event() != "PRIVMSG" {
 			return
 		}
-		err := msm.Run(channel, e.Source.String(), e.Source.Name, command, message, e.Params[1:])
+		err := msm.Run(channel, e.Source.String(), e.Source.Name, command, e.Params[1:])
 		if err != nil {
 			m.log.Error("module run error: ", err)
 		}
@@ -134,7 +130,7 @@ func (m *ModuleService) schedulePRIVMSG(module modules.ModuleInterface, duration
 	m.tickers = append(m.tickers, ticker)
 	for ; true; <-ticker.C {
 		for _, channel := range m.channels {
-			module.Run(channel, "", "", module.Commands()[0], "", make([]string, 0))
+			module.Run(channel, "", "", module.Commands()[0], make([]string, 0))
 		}
 	}
 }

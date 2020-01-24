@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"strings"
 	"time"
 
 	"github.com/huqa/gofibot/internal/pkg/logger"
@@ -36,7 +37,8 @@ func (m *EchoModule) Stop() error {
 }
 
 // Run echos input to PRIVMSG target channel
-func (m *EchoModule) Run(channel, hostmask, user, command, message string, args []string) error {
+func (m *EchoModule) Run(channel, hostmask, user, command string, args []string) error {
+	message := strings.Join(args, " ")
 	m.client.Cmd.Message(channel, user+": "+message)
 	return nil
 }
@@ -56,6 +58,7 @@ func (m *EchoModule) Global() bool {
 	return m.global
 }
 
+// Schedule
 func (m *EchoModule) Schedule() (bool, time.Time, time.Duration) {
 	return false, time.Time{}, 0
 }

@@ -11,7 +11,7 @@ import (
 type ModuleInterface interface {
 	Init() error
 	Stop() error
-	Run(channel, hostmask, user, command, message string, args []string) error
+	Run(channel, hostmask, user, command string, args []string) error
 	Event() string
 	Commands() []string
 	Global() bool

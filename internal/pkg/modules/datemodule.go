@@ -51,7 +51,7 @@ func (m *DateModule) Stop() error {
 }
 
 // Run Dates input to PRIVMSG target channel
-func (m *DateModule) Run(channel, hostmask, user, command, message string, args []string) error {
+func (m *DateModule) Run(channel, hostmask, user, command string, args []string) error {
 	if _, ok := ignoredChannels[channel]; ok {
 		return nil
 	}
@@ -83,12 +83,10 @@ func (m *DateModule) Global() bool {
 
 // Schedule
 func (m *DateModule) Schedule() (bool, time.Time, time.Duration) {
-	/*dur, _ := time.ParseDuration("24h")
+	dur, _ := time.ParseDuration("24h")
 	t := time.Now()
-	n := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, m.location)
-	n = n.Add(dur)*/
-	dur, _ := time.ParseDuration("2m")
-	n := time.Now().Add(dur)
+	n := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 5, 0, m.location)
+	n = n.Add(dur)
 	return true, n, dur
 }
 
