@@ -90,7 +90,7 @@ func (is *IRCService) LoadModules() error {
 	is.log.Info("loading modules")
 	err := is.moduleService.RegisterModules(
 		modules.NewEchoModule(is.log, is.client),
-		//modules.NewWeatherModule(is.log, is.client),
+		modules.NewWeatherModule(is.log, is.client),
 		modules.NewStatsModule(is.log, is.client, is.db),
 		modules.NewURLTitleModule(is.log, is.client),
 		modules.NewDateModule(is.log, is.client),
