@@ -104,7 +104,7 @@ func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
 	if !strings.HasPrefix(e.Params[1], m.Prefix) {
 		for _, pcmd := range m.globalCommands {
 			//m.log.Debug(e.Source.Name, channel, message, e.Params[1:])
-			err := pcmd.Run(channel, e.Source.String(), e.Source.Name, "", params[1:])
+			err := pcmd.Run(channel, e.Source.String(), e.Source.Name, "", params)
 			if err != nil {
 				m.log.Error("module run error: ", err)
 			}
