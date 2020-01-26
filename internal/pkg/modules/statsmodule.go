@@ -87,12 +87,13 @@ func (m *StatsModule) Run(channel, hostmask, user, command string, args []string
 		}
 		return nil
 	}
-	output, err := m.selectWordStats(channel)
+	output, output2, err := m.selectWordStats(channel)
 	if err != nil {
 		m.log.Error("can't fetch word stats: ", err)
 		return err
 	}
 	m.client.Cmd.Message(channel, output)
+	m.client.Cmd.Message(channel, output2)
 	return nil
 }
 
@@ -134,15 +135,15 @@ func (m *StatsModule) upsert(channel, nick, hostmask string, words int) error {
 	return tx.Commit()
 }
 
-func (m *StatsModule) selectWordStats(channel string) (output string, err error) {
+func (m *StatsModule) selectWordStats(channel string) (output string, output2 string, err error) {
 	stmt, err := m.db.Prepare(top10WordStatsStmt)
 	if err != nil {
-		return output, err
+		return "", output, err
 	}
 	defer stmt.Close()
 	rows, err := stmt.Query(channel)
 	if err != nil {
-		return output, err
+		return "", output, err
 	}
 	defer rows.Close()
 
@@ -150,9 +151,8 @@ func (m *StatsModule) selectWordStats(channel string) (output string, err error)
 		nick     string
 		hostmask string
 		words    int
-		/*total    int
+		total    int
 		mean     int
-		median   int*/
 	)
 
 	i := 1
@@ -160,10 +160,13 @@ func (m *StatsModule) selectWordStats(channel string) (output string, err error)
 	for rows.Next() {
 		err = rows.Scan(&nick, &hostmask, &words)
 		if err != nil {
-			return output, err
+			return "", output, err
 		}
+		total += words
 		output += fmt.Sprintf("%d. %s(%d) ", i, nick, words)
 		i++
 	}
-	return output, nil
+	mean = total / (i - 1)
+	output2 = fmt.Sprintf("Kaikki yhteensä: %d Keskiarvo: %d", total, mean)
+	return output, output2, nil
 }

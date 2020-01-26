@@ -2,7 +2,6 @@ package modules
 
 import (
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 type URLTitleModule struct {
 	*Module
 	titleCollector *colly.Collector
-	responses      map[string]URLTitle
 }
 
 // URLTitle defines a URLs content
@@ -32,7 +30,6 @@ func NewURLTitleModule(log logger.Logger, client *girc.Client) *URLTitleModule {
 			event:  "PRIVMSG",
 		},
 		nil,
-		make(map[string]URLTitle, 0),
 	}
 }
 
@@ -44,10 +41,9 @@ func (m *URLTitleModule) Init() error {
 		colly.AllowURLRevisit(),
 	)
 	c.AllowURLRevisit = true
-	c.OnHTML("title", func(e *colly.HTMLElement) {
-		var ID = e.Response.Ctx.Get("ID")
-		var Channel = e.Response.Ctx.Get("Channel")
-		m.responses[ID+Channel] = URLTitle(e.Text)
+	c.OnHTML("title", m.URLTitleCallback)
+	c.OnError(func(r *colly.Response, err error) {
+		m.log.Error("error: ", r.StatusCode, err)
 	})
 	m.titleCollector = c
 	return nil
@@ -66,19 +62,10 @@ func (m *URLTitleModule) Run(channel, hostmask, user, command string, args []str
 	if err != nil {
 		return nil
 	}
-	ID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	ctx := colly.NewContext()
-	ctx.Put("ID", ID)
 	ctx.Put("Channel", channel)
-	key := ID + channel
+
 	m.titleCollector.Request("GET", URL.String(), nil, ctx, nil)
-	m.titleCollector.Wait()
-	URLTitle, ok := m.responses[key]
-	if !ok {
-		return nil
-	}
-	delete(m.responses, key)
-	m.client.Cmd.Message(channel, "Title: "+string(URLTitle))
 	return nil
 }
 
@@ -99,4 +86,10 @@ func (m *URLTitleModule) Global() bool {
 
 func (m *URLTitleModule) Schedule() (bool, time.Time, time.Duration) {
 	return false, time.Time{}, 0
+}
+
+func (m *URLTitleModule) URLTitleCallback(e *colly.HTMLElement) {
+	channel := e.Response.Ctx.Get("Channel")
+	title := URLTitle(e.Text)
+	m.client.Cmd.Message(channel, "Title: "+string(title))
 }

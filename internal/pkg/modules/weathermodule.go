@@ -101,11 +101,14 @@ func (m *WeatherModule) Schedule() (bool, time.Time, time.Duration) {
 }
 
 func (m *WeatherModule) weatherResponseCallback(r *colly.Response) {
-	m.log.Debug("response received: ", r.StatusCode)
 	channel := r.Ctx.Get("Channel")
+	if r.StatusCode != 200 {
+		m.client.Cmd.Message(channel, "!w - weather service error")
+		return
+	}
 	var body = string(r.Body)
 	if strings.HasPrefix(body, "<html>") {
-		m.client.Cmd.Message(channel, "!w - internet says: error no bonus")
+		m.client.Cmd.Message(channel, "!w - weather service error")
 		return
 	}
 
