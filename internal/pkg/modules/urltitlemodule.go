@@ -2,7 +2,7 @@ package modules
 
 import (
 	"net/url"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -13,13 +13,8 @@ import (
 // URLTitleModule handles url titles scraped from PRIVMSGs
 // Todo cache
 type URLTitleModule struct {
-	log            logger.Logger
-	commands       []string
-	client         *girc.Client
+	*Module
 	titleCollector *colly.Collector
-	event          string
-	global         bool
-	responses      map[string]URLTitle
 }
 
 // URLTitle defines a URLs content
@@ -28,12 +23,13 @@ type URLTitle string
 // NewURLTitleModule constructs new URLTitleModule
 func NewURLTitleModule(log logger.Logger, client *girc.Client) *URLTitleModule {
 	return &URLTitleModule{
-		log:       log.Named("urltitlemodule"),
-		commands:  []string{},
-		client:    client,
-		event:     "PRIVMSG",
-		global:    true,
-		responses: make(map[string]URLTitle, 0),
+		&Module{
+			log:    log.Named("urltitlemodule"),
+			client: client,
+			global: true,
+			event:  "PRIVMSG",
+		},
+		nil,
 	}
 }
 
@@ -45,37 +41,31 @@ func (m *URLTitleModule) Init() error {
 		colly.AllowURLRevisit(),
 	)
 	c.AllowURLRevisit = true
-	c.OnHTML("title", func(e *colly.HTMLElement) {
-		var ID = e.Response.Ctx.Get("ID")
-		var Channel = e.Response.Ctx.Get("Channel")
-		m.responses[ID+Channel] = URLTitle(e.Text)
+	c.OnHTML("title", m.URLTitleCallback)
+	c.OnError(func(r *colly.Response, err error) {
+		m.log.Error("error: ", r.StatusCode, err)
 	})
 	m.titleCollector = c
 	return nil
 }
 
+// Stop is run when module is stopped
+func (m *URLTitleModule) Stop() error {
+	return nil
+}
+
 // Run shouts url titles to PRIVMSG in target channel
 // TODO: imdb url support
-func (m *URLTitleModule) Run(user, channel, message string, args []string) error {
-	//m.conn.Privmsg(channel, user+": "+message)
+func (m *URLTitleModule) Run(channel, hostmask, user, command string, args []string) error {
+	message := strings.Join(args, " ")
 	URL, err := url.Parse(message)
 	if err != nil {
-		m.log.Debug("checked privmsg for urltitle - not found")
 		return nil
 	}
-	ID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	ctx := colly.NewContext()
-	ctx.Put("ID", ID)
 	ctx.Put("Channel", channel)
-	key := ID + channel
+
 	m.titleCollector.Request("GET", URL.String(), nil, ctx, nil)
-	m.titleCollector.Wait()
-	URLTitle, ok := m.responses[key]
-	if !ok {
-		return nil
-	}
-	delete(m.responses, key)
-	m.client.Cmd.Message(channel, "Title: "+string(URLTitle))
 	return nil
 }
 
@@ -92,4 +82,14 @@ func (m *URLTitleModule) Event() string {
 // Global returns true if this module is a global command
 func (m *URLTitleModule) Global() bool {
 	return m.global
+}
+
+func (m *URLTitleModule) Schedule() (bool, time.Time, time.Duration) {
+	return false, time.Time{}, 0
+}
+
+func (m *URLTitleModule) URLTitleCallback(e *colly.HTMLElement) {
+	channel := e.Response.Ctx.Get("Channel")
+	title := URLTitle(e.Text)
+	m.client.Cmd.Message(channel, "Title: "+string(title))
 }

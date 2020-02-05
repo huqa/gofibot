@@ -1,11 +1,12 @@
 {
     "nick": "examplebot",
     "ident": "examplebot",
-    "realname":"examplebot",
-    "version":"gofibot v0.01",
-    "quitMessage":"bye!",
+    "realname": "examplebot",
+    "version": "gofibot v0.01",
+    "quitMessage": "bye!",
     "server": "irc.atw-inter.net",
     "prefix": "!",
+    "databaseFile": "example.db",
     "channels": [
         "#mychannel"
     ]

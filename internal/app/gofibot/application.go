@@ -2,6 +2,7 @@ package gofibot
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/huqa/gofibot/internal/pkg/config"
 
@@ -18,9 +19,10 @@ type Application struct {
 func NewApplication(
 	ctx context.Context,
 	log logger.Logger,
+	db *sql.DB,
 	botConfig config.BotConfiguration,
 ) (a *Application, err error) {
-	ircService := NewIRCService(log, botConfig)
+	ircService := NewIRCService(log, db, botConfig)
 	err = ircService.Init()
 	if err != nil {
 		log.Error("error initializing irc service")

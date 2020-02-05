@@ -1,6 +1,8 @@
 package gofibot
 
 import (
+	"database/sql"
+
 	"github.com/huqa/gofibot/internal/pkg/config"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
@@ -9,6 +11,7 @@ import (
 
 type IRCServiceInterface interface {
 	Init() error
+	Stop() error
 	Connect() error
 	LoadModules() error
 	JoinChannels() error
@@ -20,10 +23,11 @@ type IRCService struct {
 	moduleService ModuleServiceInterface
 	config        config.BotConfiguration
 	client        *girc.Client
+	db            *sql.DB
 	callbacks     []string
 }
 
-func NewIRCService(log logger.Logger, cfg config.BotConfiguration) IRCServiceInterface {
+func NewIRCService(log logger.Logger, db *sql.DB, cfg config.BotConfiguration) IRCServiceInterface {
 
 	config := girc.Config{
 		Nick:   cfg.Nick,
@@ -43,47 +47,53 @@ func NewIRCService(log logger.Logger, cfg config.BotConfiguration) IRCServiceInt
 		client:        client,
 		callbacks:     make([]string, 0),
 		log:           log.Named("ircservice"),
-		moduleService: NewModuleService(log, cfg.Prefix),
+		moduleService: NewModuleService(log, cfg.Channels, cfg.Prefix),
+		db:            db,
 	}
 }
 
 func (is *IRCService) Init() error {
-	log := is.log.Named("Init")
-	log.Info("init bot")
+	is.log.Info("init bot")
 
 	err := is.LoadModules()
 	if err != nil {
-		log.Error("can't load modules ", err)
+		is.log.Error("can't load modules ", err)
 		return err
 	}
 	err = is.JoinChannels()
 	if err != nil {
-		log.Error("error joining channels ", err)
+		is.log.Error("error joining channels ", err)
 		return err
 	}
 
 	err = is.Connect()
 	if err != nil {
-		log.Error("error connecting to server ", err)
+		is.log.Error("error connecting to server ", err)
 		return err
 	}
 
 	return nil
 }
 
+func (is *IRCService) Stop() error {
+	is.client.Quit("stopping gofi")
+	is.moduleService.StopModules()
+	return nil
+}
+
 func (is *IRCService) Connect() error {
-	log := is.log.Named("Connect")
-	log.Info("connecting to server: ", is.config.Server)
+	is.log.Info("connecting to server: ", is.config.Server)
 	return is.client.Connect()
 }
 
 func (is *IRCService) LoadModules() error {
-	log := is.log.Named("LoadModules")
-	log.Info("loading modules")
+	is.log.Info("loading modules")
 	err := is.moduleService.RegisterModules(
 		modules.NewEchoModule(is.log, is.client),
 		modules.NewWeatherModule(is.log, is.client),
+		modules.NewStatsModule(is.log, is.client, is.db),
 		modules.NewURLTitleModule(is.log, is.client),
+		modules.NewDateModule(is.log, is.client),
 	)
 	if err != nil {
 		return err
@@ -93,12 +103,11 @@ func (is *IRCService) LoadModules() error {
 }
 
 func (is *IRCService) JoinChannels() error {
-	log := is.log.Named("JoinChannels")
-	log.Info("joining channels when connected: ", is.config.Channels)
+	is.log.Info("joining channels when connected: ", is.config.Channels)
 
 	is.client.Handlers.Add(girc.CONNECTED, func(c *girc.Client, e girc.Event) {
-		for _, ch := range is.config.Channels {
-			log.Info("joining channel: ", ch)
+		for _, ch := range is.Channels() {
+			is.log.Info("joining channel: ", ch)
 			c.Cmd.Join(ch)
 		}
 	})
@@ -110,4 +119,8 @@ func (is *IRCService) RegisterModuleCallbacks() {
 		go is.moduleService.PRIVMSGCallback(&e)
 	})
 	is.callbacks = append(is.callbacks, cbID)
+}
+
+func (is *IRCService) Channels() []string {
+	return is.config.Channels
 }
