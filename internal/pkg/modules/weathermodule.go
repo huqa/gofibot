@@ -95,7 +95,7 @@ func (m *WeatherModule) Global() bool {
 	return m.global
 }
 
-// Schedule
+// Schedule schedules this module to be run at specific intervals
 func (m *WeatherModule) Schedule() (bool, time.Time, time.Duration) {
 	return false, time.Time{}, 0
 }

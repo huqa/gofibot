@@ -131,7 +131,8 @@ func (m *ModuleService) schedulePRIVMSG(module modules.ModuleInterface, duration
 	m.tickers = append(m.tickers, ticker)
 	for ; true; <-ticker.C {
 		for _, channel := range m.channels {
-			module.Run(channel, "", "", module.Commands()[0], make([]string, 0))
+			time.Sleep(5 * time.Second)
+			module.Run(channel, "SYSTEM", "SYSTEM", module.Commands()[0], make([]string, 0))
 		}
 	}
 }

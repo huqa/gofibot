@@ -85,7 +85,7 @@ func (m *DateModule) Global() bool {
 func (m *DateModule) Schedule() (bool, time.Time, time.Duration) {
 	dur, _ := time.ParseDuration("24h")
 	t := time.Now()
-	n := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 5, 0, m.location)
+	n := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, m.location)
 	n = n.Add(dur)
 	return true, n, dur
 }

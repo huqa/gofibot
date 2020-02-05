@@ -26,6 +26,10 @@ const (
 	top10WordStatsStmt string = `
 	SELECT nick, hostmask, words FROM stats_stats WHERE channel = ? ORDER BY words DESC LIMIT 10;
 	`
+
+	clearChannelStatsStmt string = `
+	DELETE FROM stats_stats WHERE channel = ?;
+	`
 )
 
 // StatsModule handles irc channel statistics
@@ -80,7 +84,7 @@ func (m *StatsModule) Stop() error {
 // Run Stats input to PRIVMSG target channel
 func (m *StatsModule) Run(channel, hostmask, user, command string, args []string) error {
 	// handle global command -> upsert word count
-	if command == "" {
+	if command == "" && hostmask != "SYSTEM" {
 		err := m.upsert(channel, user, hostmask, len(args))
 		if err != nil {
 			return err
@@ -94,6 +98,13 @@ func (m *StatsModule) Run(channel, hostmask, user, command string, args []string
 	}
 	m.client.Cmd.Message(channel, output)
 	m.client.Cmd.Message(channel, output2)
+	if hostmask == "SYSTEM" && user == "SYSTEM" {
+		err = m.clearStats(channel)
+		if err != nil {
+			m.log.Error("can't clear word stats: ", err)
+		}
+	}
+
 	return nil
 }
 
@@ -115,6 +126,24 @@ func (m *StatsModule) Global() bool {
 // Schedule returns true, time.Time if this module is scheduled to be run at time.Time
 func (m *StatsModule) Schedule() (bool, time.Time, time.Duration) {
 	return false, time.Time{}, 0
+}
+
+func (m *StatsModule) clearStats(channel string) error {
+	tx, err := m.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare(clearChannelStatsStmt)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(channel)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // upsert inserts or updates word counts on db
