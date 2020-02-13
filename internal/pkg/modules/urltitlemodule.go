@@ -42,9 +42,9 @@ func (m *URLTitleModule) Init() error {
 	)
 	c.AllowURLRevisit = true
 	c.OnHTML("title", m.URLTitleCallback)
-	c.OnError(func(r *colly.Response, err error) {
-		m.log.Error("error: ", r.StatusCode, err)
-	})
+	//c.OnError(func(r *colly.Response, err error) {
+		//m.log.Error("error: ", r.StatusCode, err)
+	//})
 	m.titleCollector = c
 	return nil
 }
@@ -91,5 +91,5 @@ func (m *URLTitleModule) Schedule() (bool, time.Time, time.Duration) {
 func (m *URLTitleModule) URLTitleCallback(e *colly.HTMLElement) {
 	channel := e.Response.Ctx.Get("Channel")
 	title := URLTitle(e.Text)
-	m.client.Cmd.Message(channel, "Title: "+string(title))
+        m.client.Cmd.Message(channel, "Title: "+string(title))
 }
