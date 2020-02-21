@@ -201,16 +201,16 @@ func (m *GuessModule) upsertRoll(number int, wasRight bool) error {
 func (m *GuessModule) getPlayerStats(nick string) (guesses int, rights int, err error) {
 	tx, err := m.db.Begin()
 	if err != nil {
-		return "", "", err
+		return 0, 0, err
 	}
 	stmt, err := tx.Prepare(selectUserWordStat)
 	if err != nil {
-		return "", "", err
+		return 0, 0, err
 	}
 	defer stmt.Close()
 	err = stmt.QueryRow(nick).Scan(&guesses, &rights)
 	if err != nil {
-		return "", "", err
+		return 0, 0, err
 	}
 	return guesses, rights, nil
 }
