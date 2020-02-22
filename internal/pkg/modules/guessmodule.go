@@ -1,12 +1,12 @@
 package modules
 
 import (
-	"database/sql"
 	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
 
+	"github.com/boltdb/bolt"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/lrstanley/girc"
 )
@@ -48,12 +48,12 @@ const (
 // GuessModule is a guessing game
 type GuessModule struct {
 	*Module
-	db           *sql.DB
+	db           *bolt.DB
 	guessesToday map[string]int
 }
 
 // NewGuessModule constructs a new GuessModule
-func NewGuessModule(log logger.Logger, client *girc.Client, db *sql.DB) *GuessModule {
+func NewGuessModule(log logger.Logger, client *girc.Client, db *bolt.DB) *GuessModule {
 	return &GuessModule{
 		&Module{
 			log:      log.Named("guessmodule"),

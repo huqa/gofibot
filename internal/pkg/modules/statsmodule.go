@@ -1,10 +1,10 @@
 package modules
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/boltdb/bolt"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/lrstanley/girc"
 )
@@ -30,19 +30,21 @@ const (
 	clearChannelStatsStmt string = `
 	DELETE FROM stats_stats WHERE channel = ?;
 	`
+
+	stats = []byte("stats")
 )
 
 // StatsModule handles irc channel statistics
 type StatsModule struct {
 	*Module
 
-	db *sql.DB
+	db *bolt.DB
 
 	location *time.Location
 }
 
 // NewStatsModule constructs a new StatsModule
-func NewStatsModule(log logger.Logger, client *girc.Client, db *sql.DB) *StatsModule {
+func NewStatsModule(log logger.Logger, client *girc.Client, db *bolt.DB) *StatsModule {
 	return &StatsModule{
 		&Module{
 			log:      log.Named("Statsmodule"),

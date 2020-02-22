@@ -2,8 +2,8 @@ package gofibot
 
 import (
 	"context"
-	"database/sql"
 
+	"github.com/boltdb/bolt"
 	"github.com/huqa/gofibot/internal/pkg/config"
 
 	"github.com/huqa/gofibot/internal/pkg/logger"
@@ -19,7 +19,7 @@ type Application struct {
 func NewApplication(
 	ctx context.Context,
 	log logger.Logger,
-	db *sql.DB,
+	db *bolt.DB,
 	botConfig config.BotConfiguration,
 ) (a *Application, err error) {
 	ircService := NewIRCService(log, db, botConfig)
