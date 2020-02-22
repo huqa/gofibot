@@ -51,6 +51,7 @@ func main() {
 		log.Fatal("failed to open sqlite database ", err)
 		os.Exit(1)
 	}
+	db.SetMaxOpenConns(1)
 	defer db.Close()
 
 	_, err = gofibot.NewApplication(ctx, log, db, appConfig.BotConfig)

@@ -87,6 +87,7 @@ func (m *StatsModule) Run(channel, hostmask, user, command string, args []string
 	if command == "" && hostmask != "SYSTEM" {
 		err := m.upsert(channel, user, hostmask, len(args))
 		if err != nil {
+			m.log.Error("upsert error: ", err)
 			return err
 		}
 		return nil
