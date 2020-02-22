@@ -41,12 +41,15 @@ const (
 	selectUserWordStat string = `
 	SELECT guesses, rights FROM guess_player_stats WHERE nick = ?;
 	`
+
+	guessLimitPerDay int = 5
 )
 
 // GuessModule is a guessing game
 type GuessModule struct {
 	*Module
-	db *sql.DB
+	db           *sql.DB
+	guessesToday map[string]int
 }
 
 // NewGuessModule constructs a new GuessModule
@@ -60,6 +63,7 @@ func NewGuessModule(log logger.Logger, client *girc.Client, db *sql.DB) *GuessMo
 			commands: []string{"arvaa"},
 		},
 		db,
+		make(map[string]int),
 	}
 }
 
@@ -107,7 +111,13 @@ func (m *GuessModule) Run(channel, hostmask, user, command string, args []string
 	}
 
 	if guess <= 0 || guess > 200 {
-		m.client.Cmd.Message(channel, fmt.Sprintf("!arvaa - %s anna luku väliltä [1-200]", user))
+		m.client.Cmd.Message(channel, fmt.Sprintf("!arvaa - %s anna luku väliltä 1-200", user))
+		return nil
+	}
+
+	guessesLeft := m.handleGuessLimit(user)
+	if guessesLeft < 0 {
+		m.client.Cmd.Message(channel, fmt.Sprintf("!arvaa - %s ei arvauksia jäljellä tänään", user))
 		return nil
 	}
 
@@ -117,11 +127,11 @@ func (m *GuessModule) Run(channel, hostmask, user, command string, args []string
 	max := 200
 	throw := rand.Intn(max-min+1) + min
 
-	m.client.Cmd.Message(channel, fmt.Sprintf("!arvaa - %s arvasi %d ja heitti %d", user, guess, throw))
+	m.client.Cmd.Message(channel, fmt.Sprintf("!arvaa - %s arvasi %d ja heitti %d - arvauksia jäljellä %d", user, guess, throw, guessesLeft))
 
 	if int64(throw) == guess {
 		wasRight = true
-		m.client.Cmd.Message(channel, fmt.Sprintf("!arvaa - %s CONGRATURATION YOU WINNER", user))
+		m.client.Cmd.Message(channel, fmt.Sprintf("!arvaa - %s CONGRATURATIONS YOU WINRAR", user))
 	}
 	err = m.upsertRoll(throw, wasRight)
 	if err != nil {
@@ -152,6 +162,22 @@ func (m *GuessModule) Global() bool {
 // Schedule returns true, time.Time if this module is scheduled to be run at time.Time
 func (m *GuessModule) Schedule() (bool, time.Time, time.Duration) {
 	return false, time.Time{}, 0
+}
+
+func (m *GuessModule) handleGuessLimit(nick string) (guessesLeft int) {
+	guessesLeft = 0
+	if guesses, ok := m.guessesToday[nick]; ok {
+		guessesLeft = guesses - 1
+		if guesses < 0 {
+			return -1
+		}
+		m.guessesToday[nick] = guessesLeft
+		return guessesLeft
+	}
+
+	guessesLeft = guessLimitPerDay - 1
+	m.guessesToday[nick] = guessLimitPerDay - 1
+	return guessesLeft
 }
 
 // upsert inserts or updates word counts on db
