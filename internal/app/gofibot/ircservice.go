@@ -88,12 +88,13 @@ func (is *IRCService) Connect() error {
 func (is *IRCService) LoadModules() error {
 	is.log.Info("loading modules")
 	err := is.moduleService.RegisterModules(
-		modules.NewEchoModule(is.log, is.client),
+		//modules.NewEchoModule(is.log, is.client),
 		modules.NewWeatherModule(is.log, is.client),
 		modules.NewStatsModule(is.log, is.client, is.db),
 		modules.NewURLTitleModule(is.log, is.client),
 		modules.NewDateModule(is.log, is.client),
 		modules.NewGuessModule(is.log, is.client, is.db),
+		modules.NewShouldModule(is.log, is.client),
 	)
 	if err != nil {
 		return err
