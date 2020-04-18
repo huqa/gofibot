@@ -39,6 +39,7 @@ type Roll struct {
 // GuessModule is a guessing game
 type GuessModule struct {
 	*Module
+	location     *time.Location
 	db           *bolt.DB
 	guessesToday map[string]int
 }
@@ -53,6 +54,7 @@ func NewGuessModule(log logger.Logger, client *girc.Client, db *bolt.DB) *GuessM
 			event:    "PRIVMSG",
 			commands: []string{"arvaa"},
 		},
+		nil,
 		db,
 		make(map[string]int),
 	}
@@ -62,7 +64,14 @@ func NewGuessModule(log logger.Logger, client *girc.Client, db *bolt.DB) *GuessM
 func (m *GuessModule) Init() error {
 	m.log.Info("Init")
 
-	err := m.db.Update(func(tx *bolt.Tx) error {
+	loc, err := time.LoadLocation("Europe/Helsinki")
+	if err != nil {
+		m.log.Error("couldn't load time zone for helsinki: ", err)
+		return err
+	}
+	m.location = loc
+
+	err = m.db.Update(func(tx *bolt.Tx) error {
 		root, err := tx.CreateBucketIfNotExists([]byte(guessRootBucket))
 		if err != nil {
 			return fmt.Errorf("could not create root bucket: %v", err)
@@ -92,6 +101,10 @@ func (m *GuessModule) Stop() error {
 
 // Run Stats input to PRIVMSG target channel
 func (m *GuessModule) Run(channel, hostmask, user, command string, args []string) error {
+	if hostmask == "SYSTEM" && user == "SYSTEM" {
+		m.resetDailyGuesses()
+		return nil
+	}
 	if len(args) == 0 {
 		guesses, rights, err := m.getPlayerStats(user)
 		if err != nil {
@@ -160,7 +173,11 @@ func (m *GuessModule) Global() bool {
 
 // Schedule returns true, time.Time if this module is scheduled to be run at time.Time
 func (m *GuessModule) Schedule() (bool, time.Time, time.Duration) {
-	return false, time.Time{}, 0
+	dur, _ := time.ParseDuration("24h")
+	t := time.Now()
+	n := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, m.location)
+	n = n.Add(dur)
+	return true, n, dur
 }
 
 func (m *GuessModule) handleGuessLimit(nick string) (guessesLeft int) {
@@ -177,6 +194,10 @@ func (m *GuessModule) handleGuessLimit(nick string) (guessesLeft int) {
 	guessesLeft = guessLimitPerDay - 1
 	m.guessesToday[nick] = guessLimitPerDay - 1
 	return guessesLeft
+}
+
+func (m *GuessModule) resetDailyGuesses() {
+	m.guessesToday = make(map[string]int)
 }
 
 // upsert inserts or updates guesses count to db
