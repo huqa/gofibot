@@ -61,8 +61,7 @@ func (m *DateModule) Run(channel, hostmask, user, command string, args []string)
 	yearDay := now.YearDay()
 	_, week := now.ISOWeek()
 
-	output := fmt.Sprintf(dateString, weekday, date, week, yearDay)
-	m.client.Cmd.Message(channel, output)
+	m.client.Cmd.Message(channel, fmt.Sprintf(dateString, weekday, date, week, yearDay))
 	return nil
 }
 

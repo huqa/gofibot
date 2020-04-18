@@ -129,10 +129,14 @@ func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
 func (m *ModuleService) schedulePRIVMSG(module modules.ModuleInterface, duration time.Duration) {
 	ticker := time.NewTicker(duration)
 	m.tickers = append(m.tickers, ticker)
+	command := "schedule"
+	if len(module.Commands()) > 0 {
+		command = module.Commands()[0]
+	}
 	for ; true; <-ticker.C {
 		for _, channel := range m.channels {
 			time.Sleep(5 * time.Second)
-			module.Run(channel, "SYSTEM", "SYSTEM", module.Commands()[0], make([]string, 0))
+			module.Run(channel, "SYSTEM", "SYSTEM", command, make([]string, 0))
 		}
 	}
 }
