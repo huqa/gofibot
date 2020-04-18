@@ -2,6 +2,7 @@ package modules
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -258,7 +259,7 @@ func (m *GuessModule) getPlayerStats(nick string) (guesses int, rights int, err 
 		if guessBytes == nil {
 			guesses = 0
 			rights = 0
-			return nil
+			return errors.New("no user data found")
 		}
 		var g Guess
 		err := json.Unmarshal(guessBytes, &g)
