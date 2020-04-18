@@ -216,7 +216,9 @@ func (m *StatsModule) selectWordStats(channel string) (output string, output2 st
 	output = ""
 	for _, cs := range stats {
 		total += cs.Words
-		output += fmt.Sprintf("%d. %s(%d) ", i, cs.Nick, cs.Words)
+		if i < 11 {
+			output += fmt.Sprintf("%d. %s(%d) ", i, cs.Nick, cs.Words)
+		}
 		i++
 	}
 	mean = total / (i - 1)
