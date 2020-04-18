@@ -28,7 +28,7 @@ type Guess struct {
 	Rights  int
 }
 
-// Rolls represents guessed dice values
+// Roll represents guessed dice values
 type Roll struct {
 	Value  int
 	Rolls  int

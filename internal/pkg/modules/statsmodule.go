@@ -12,27 +12,6 @@ import (
 )
 
 const (
-	/*statsTableStmt string = `
-	CREATE TABLE IF NOT EXISTS stats_stats (
-		channel text,
-		nick text,
-		hostmask text,
-		words INT DEFAULT 0,
-		PRIMARY KEY(channel, nick, hostmask)
-	) WITHOUT ROWID;
-	`
-	upsertStmt string = `
-	INSERT INTO stats_stats(channel, nick, hostmask, words) VALUES (?, ?, ?, ?)
-	ON CONFLICT(channel, nick, hostmask) DO UPDATE SET words = words + excluded.words;
-	`
-	top10WordStatsStmt string = `
-	SELECT nick, hostmask, words FROM stats_stats WHERE channel = ? ORDER BY words DESC LIMIT 10;
-	`
-
-	clearChannelStatsStmt string = `
-	DELETE FROM stats_stats WHERE channel = ?;
-	`*/
-
 	statsRootBucket    string = "Stats"
 	channelStatsBucket string = "Channel"
 )
@@ -72,12 +51,6 @@ func NewStatsModule(log logger.Logger, client *girc.Client, db *bolt.DB) *StatsM
 // Init initializes Stats module
 func (m *StatsModule) Init() error {
 	m.log.Info("Init")
-
-	/*_, err := m.db.Exec(statsTableStmt)
-	if err != nil {
-		m.log.Error("db error ", err)
-		return err
-	}*/
 
 	err := m.db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(statsRootBucket))
