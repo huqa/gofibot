@@ -54,6 +54,7 @@ func (m *ShouldModule) Stop() error {
 func (m *ShouldModule) Run(channel, hostmask, user, command string, args []string) error {
 	message := strings.Join(args, " ")
 	message = strings.ToLower(message)
+	rand.Seed(time.Now().UnixNano())
 	for _, sh := range m.shoulds {
 		if strings.Contains(message, sh) {
 			i := rand.Intn(11)
