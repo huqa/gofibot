@@ -3,12 +3,12 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	bolt "go.etcd.io/bbolt"
 
 	gofibot "github.com/huqa/gofibot/internal/app/gofibot"
 	"github.com/huqa/gofibot/internal/pkg/config"
@@ -46,12 +46,11 @@ func main() {
 
 	log := logger.New(appConfig.Logger)
 
-	db, err := sql.Open("sqlite3", fmt.Sprintf("./db/%s", botConfig.DatabaseFile))
+	db, err := bolt.Open(fmt.Sprintf("./db/%s", botConfig.DatabaseFile), 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Fatal("failed to open sqlite database ", err)
 		os.Exit(1)
 	}
-	db.SetMaxOpenConns(1)
 	defer db.Close()
 
 	_, err = gofibot.NewApplication(ctx, log, db, appConfig.BotConfig)

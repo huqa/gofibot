@@ -1,12 +1,11 @@
 package gofibot
 
 import (
-	"database/sql"
-
 	"github.com/huqa/gofibot/internal/pkg/config"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
 	"github.com/lrstanley/girc"
+	bolt "go.etcd.io/bbolt"
 )
 
 type IRCServiceInterface interface {
@@ -23,11 +22,11 @@ type IRCService struct {
 	moduleService ModuleServiceInterface
 	config        config.BotConfiguration
 	client        *girc.Client
-	db            *sql.DB
+	db            *bolt.DB
 	callbacks     []string
 }
 
-func NewIRCService(log logger.Logger, db *sql.DB, cfg config.BotConfiguration) IRCServiceInterface {
+func NewIRCService(log logger.Logger, db *bolt.DB, cfg config.BotConfiguration) IRCServiceInterface {
 
 	config := girc.Config{
 		Nick:   cfg.Nick,
