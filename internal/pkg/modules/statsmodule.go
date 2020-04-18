@@ -1,16 +1,18 @@
 package modules
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/lrstanley/girc"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
-	statsTableStmt string = `
+	/*statsTableStmt string = `
 	CREATE TABLE IF NOT EXISTS stats_stats (
 		channel text,
 		nick text,
@@ -20,7 +22,7 @@ const (
 	) WITHOUT ROWID;
 	`
 	upsertStmt string = `
-	INSERT INTO stats_stats(channel, nick, hostmask, words) VALUES (?, ?, ?, ?) 
+	INSERT INTO stats_stats(channel, nick, hostmask, words) VALUES (?, ?, ?, ?)
 	ON CONFLICT(channel, nick, hostmask) DO UPDATE SET words = words + excluded.words;
 	`
 	top10WordStatsStmt string = `
@@ -29,10 +31,19 @@ const (
 
 	clearChannelStatsStmt string = `
 	DELETE FROM stats_stats WHERE channel = ?;
-	`
+	`*/
 
-	stats = []byte("stats")
+	statsRootBucket    string = "Stats"
+	channelStatsBucket string = "Channel"
 )
+
+// ChannelStats represents a users chat stats on a channel
+type ChannelStats struct {
+	Nick     string
+	Channel  string
+	Hostmask string
+	Words    int
+}
 
 // StatsModule handles irc channel statistics
 type StatsModule struct {
@@ -62,10 +73,22 @@ func NewStatsModule(log logger.Logger, client *girc.Client, db *bolt.DB) *StatsM
 func (m *StatsModule) Init() error {
 	m.log.Info("Init")
 
-	_, err := m.db.Exec(statsTableStmt)
+	/*_, err := m.db.Exec(statsTableStmt)
 	if err != nil {
 		m.log.Error("db error ", err)
 		return err
+	}*/
+
+	err := m.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(statsRootBucket))
+		if err != nil {
+			return fmt.Errorf("could not create root bucket: %v", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("could not set up buckets, %v", err)
 	}
 
 	loc, err := time.LoadLocation("Europe/Helsinki")
@@ -136,70 +159,91 @@ func (m *StatsModule) Schedule() (bool, time.Time, time.Duration) {
 }
 
 func (m *StatsModule) clearStats(channel string) error {
-	tx, err := m.db.Begin()
-	if err != nil {
-		return err
-	}
-
-	stmt, err := tx.Prepare(clearChannelStatsStmt)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-	_, err = stmt.Exec(channel)
-	if err != nil {
-		return err
-	}
-	return tx.Commit()
+	return m.db.Update(func(tx *bolt.Tx) error {
+		root := tx.Bucket([]byte(statsRootBucket))
+		chanBucket := root.Bucket([]byte(channel))
+		if chanBucket == nil {
+			return nil
+		}
+		return root.DeleteBucket([]byte(channel))
+	})
 }
 
 // upsert inserts or updates word counts on db
 func (m *StatsModule) upsert(channel, nick, hostmask string, words int) error {
-	tx, err := m.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt, err := tx.Prepare(upsertStmt)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-	_, err = stmt.Exec(channel, nick, hostmask, words)
-	if err != nil {
-		return err
-	}
-	return tx.Commit()
+	return m.db.Update(func(tx *bolt.Tx) error {
+		root := tx.Bucket([]byte(statsRootBucket))
+		chanBucket, err := root.CreateBucketIfNotExists([]byte(channel))
+		if err != nil {
+			return err
+		}
+		statsBytes := chanBucket.Get([]byte(nick))
+		if statsBytes == nil {
+			insert := ChannelStats{
+				Nick:     nick,
+				Channel:  channel,
+				Hostmask: hostmask,
+				Words:    words,
+			}
+			enc, err := json.Marshal(insert)
+			if err != nil {
+				return err
+			}
+			return chanBucket.Put([]byte(nick), enc)
+		}
+		var c ChannelStats
+		err = json.Unmarshal(statsBytes, &c)
+		if err != nil {
+			return err
+		}
+		c.Words = c.Words + words
+		enc, err := json.Marshal(c)
+		if err != nil {
+			return err
+		}
+		return chanBucket.Put([]byte(nick), enc)
+	})
 }
 
 func (m *StatsModule) selectWordStats(channel string) (output string, output2 string, err error) {
-	stmt, err := m.db.Prepare(top10WordStatsStmt)
+	stats := make([]ChannelStats, 0)
+	err = m.db.View(func(tx *bolt.Tx) error {
+		chanBucket := tx.Bucket([]byte(statsRootBucket)).Bucket([]byte(channel))
+		if chanBucket == nil {
+			return nil
+		}
+		c := chanBucket.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			var cs ChannelStats
+			err = json.Unmarshal(v, &cs)
+			if err != nil {
+				continue
+			}
+			stats = append(stats, cs)
+		}
+		return nil
+	})
 	if err != nil {
-		return "", output, err
+		return "", "", err
 	}
-	defer stmt.Close()
-	rows, err := stmt.Query(channel)
-	if err != nil {
-		return "", output, err
+	if len(stats) <= 0 {
+		return "", "", nil
 	}
-	defer rows.Close()
+	// sort in reverse order
+	sort.Slice(stats, func(i, j int) bool {
+		return stats[i].Words > stats[j].Words
+	})
 
 	var (
-		nick     string
-		hostmask string
-		words    int
-		total    int
-		mean     int
+		total int
+		mean  int
 	)
 
 	i := 1
 	output = ""
-	for rows.Next() {
-		err = rows.Scan(&nick, &hostmask, &words)
-		if err != nil {
-			return "", output, err
-		}
-		total += words
-		output += fmt.Sprintf("%d. %s(%d) ", i, nick, words)
+	for _, cs := range stats {
+		total += cs.Words
+		output += fmt.Sprintf("%d. %s(%d) ", i, cs.Nick, cs.Words)
 		i++
 	}
 	mean = total / (i - 1)

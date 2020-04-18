@@ -1,11 +1,11 @@
 package gofibot
 
 import (
-	"github.com/boltdb/bolt"
 	"github.com/huqa/gofibot/internal/pkg/config"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
 	"github.com/lrstanley/girc"
+	bolt "go.etcd.io/bbolt"
 )
 
 type IRCServiceInterface interface {

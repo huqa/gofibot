@@ -3,8 +3,8 @@ package gofibot
 import (
 	"context"
 
-	"github.com/boltdb/bolt"
 	"github.com/huqa/gofibot/internal/pkg/config"
+	bolt "go.etcd.io/bbolt"
 
 	"github.com/huqa/gofibot/internal/pkg/logger"
 )

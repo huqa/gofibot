@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/boltdb/bolt"
+	bolt "go.etcd.io/bbolt"
 
 	gofibot "github.com/huqa/gofibot/internal/app/gofibot"
 	"github.com/huqa/gofibot/internal/pkg/config"

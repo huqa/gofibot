@@ -1,49 +1,39 @@
 package modules
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/huqa/gofibot/internal/pkg/logger"
+	"github.com/huqa/gofibot/internal/pkg/utils"
 	"github.com/lrstanley/girc"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
-	playerStatsTableStmt string = `
-	CREATE TABLE IF NOT EXISTS guess_player_stats (
-		nick text,
-		guesses INT DEFAULT 0,
-		rights INT DEFAULT 0,
-		PRIMARY KEY(nick)
-	) WITHOUT ROWID;
-	`
-
-	rollsTableStmt string = `
-	CREATE TABLE IF NOT EXISTS guess_rolls (
-		id INT,
-		rolls INT DEFAULT 0,
-		rights INT DEFAULT 0,
-		PRIMARY KEY(id)
-	);
-	`
-
-	upsertPlayerStatsStmt string = `
-	INSERT INTO guess_player_stats(nick, guesses, rights) VALUES (?, ?, ?) 
-	ON CONFLICT(nick) DO UPDATE SET guesses = guesses + excluded.guesses, rights = rights + excluded.rights;
-	`
-	upsertRollsStmt string = `
-	INSERT INTO guess_rolls(id, rolls, rights) VALUES (?, ?, ?) 
-	ON CONFLICT(id) DO UPDATE SET rolls = rolls + excluded.rolls, rights = rights + excluded.rights;
-	`
-	selectUserWordStat string = `
-	SELECT guesses, rights FROM guess_player_stats WHERE nick = ?;
-	`
+	guessRootBucket  string = `Guess`
+	guessStatsBucket string = `Stats`
+	guessRollsBucket string = `Rolls`
 
 	guessLimitPerDay int = 5
 )
+
+// Guess represents a guess from a player
+type Guess struct {
+	Nick    string
+	Guesses int
+	Rights  int
+}
+
+// Rolls represents guessed dice values
+type Roll struct {
+	Value  int
+	Rolls  int
+	Rights int
+}
 
 // GuessModule is a guessing game
 type GuessModule struct {
@@ -71,16 +61,24 @@ func NewGuessModule(log logger.Logger, client *girc.Client, db *bolt.DB) *GuessM
 func (m *GuessModule) Init() error {
 	m.log.Info("Init")
 
-	_, err := m.db.Exec(playerStatsTableStmt)
-	if err != nil {
-		m.log.Error("db error ", err)
-		return err
-	}
+	err := m.db.Update(func(tx *bolt.Tx) error {
+		root, err := tx.CreateBucketIfNotExists([]byte(guessRootBucket))
+		if err != nil {
+			return fmt.Errorf("could not create root bucket: %v", err)
+		}
+		_, err = root.CreateBucketIfNotExists([]byte(guessStatsBucket))
+		if err != nil {
+			return fmt.Errorf("could not create weight bucket: %v", err)
+		}
+		_, err = root.CreateBucketIfNotExists([]byte(guessRollsBucket))
+		if err != nil {
+			return fmt.Errorf("could not create days bucket: %v", err)
+		}
+		return nil
+	})
 
-	_, err = m.db.Exec(rollsTableStmt)
 	if err != nil {
-		m.log.Error("db error ", err)
-		return err
+		return fmt.Errorf("could not set up buckets, %v", err)
 	}
 
 	return nil
@@ -180,63 +178,96 @@ func (m *GuessModule) handleGuessLimit(nick string) (guessesLeft int) {
 	return guessesLeft
 }
 
-// upsert inserts or updates word counts on db
+// upsert inserts or updates guesses count to db
 func (m *GuessModule) upsertGuess(nick string, wasRight bool) error {
-	tx, err := m.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt, err := tx.Prepare(upsertPlayerStatsStmt)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
 	var wr = 0
 	if wasRight == true {
 		wr = 1
 	}
-	_, err = stmt.Exec(nick, 1, wr)
-	if err != nil {
-		return err
-	}
-	return tx.Commit()
+	return m.db.Update(func(tx *bolt.Tx) error {
+		guessBucket := tx.Bucket([]byte(guessRootBucket)).Bucket([]byte(guessStatsBucket))
+		guessBytes := guessBucket.Get([]byte(nick))
+		if guessBytes == nil {
+			insert := Guess{
+				Nick:    nick,
+				Guesses: 1,
+				Rights:  wr,
+			}
+			enc, err := json.Marshal(insert)
+			if err != nil {
+				return err
+			}
+			return guessBucket.Put([]byte(nick), enc)
+		}
+		var g Guess
+		err := json.Unmarshal(guessBytes, &g)
+		if err != nil {
+			return err
+		}
+		g.Guesses = g.Guesses + 1
+		g.Rights = g.Rights + wr
+		enc, err := json.Marshal(g)
+		if err != nil {
+			return err
+		}
+		return guessBucket.Put([]byte(nick), enc)
+	})
 }
 
 // upsert inserts or updates rolls on db
 func (m *GuessModule) upsertRoll(number int, wasRight bool) error {
-	tx, err := m.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt, err := tx.Prepare(upsertRollsStmt)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
 	var wr = 0
 	if wasRight == true {
 		wr = 1
 	}
-	_, err = stmt.Exec(number, 1, wr)
-	if err != nil {
-		return err
-	}
-	return tx.Commit()
+	return m.db.Update(func(tx *bolt.Tx) error {
+		rollsBucket := tx.Bucket([]byte(guessRootBucket)).Bucket([]byte(guessRollsBucket))
+		rollBytes := rollsBucket.Get(utils.Itob(number))
+		if rollBytes == nil {
+			insert := Roll{
+				Value:  number,
+				Rolls:  1,
+				Rights: wr,
+			}
+			enc, err := json.Marshal(insert)
+			if err != nil {
+				return err
+			}
+			return rollsBucket.Put(utils.Itob(number), enc)
+		}
+		var r Roll
+		err := json.Unmarshal(rollBytes, &r)
+		if err != nil {
+			return err
+		}
+		r.Rolls = r.Rolls + 1
+		r.Rights = r.Rights + wr
+		enc, err := json.Marshal(r)
+		if err != nil {
+			return err
+		}
+		return rollsBucket.Put(utils.Itob(number), enc)
+	})
 }
 
 func (m *GuessModule) getPlayerStats(nick string) (guesses int, rights int, err error) {
-	tx, err := m.db.Begin()
-	if err != nil {
-		return 0, 0, err
-	}
-	stmt, err := tx.Prepare(selectUserWordStat)
-	if err != nil {
-		return 0, 0, err
-	}
-	defer stmt.Close()
-	err = stmt.QueryRow(nick).Scan(&guesses, &rights)
-	if err != nil {
-		return 0, 0, err
-	}
+
+	err = m.db.View(func(tx *bolt.Tx) error {
+		guessBucket := tx.Bucket([]byte(guessRootBucket)).Bucket([]byte(guessStatsBucket))
+		guessBytes := guessBucket.Get([]byte(nick))
+		if guessBytes == nil {
+			guesses = 0
+			rights = 0
+			return nil
+		}
+		var g Guess
+		err := json.Unmarshal(guessBytes, &g)
+		if err != nil {
+			return err
+		}
+		guesses = g.Guesses
+		rights = g.Rights
+		return nil
+	})
 	return guesses, rights, nil
 }
