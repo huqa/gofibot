@@ -62,7 +62,7 @@ func (m *ModuleService) StopModules() error {
 // RegisterModules registers modules to ModuleService
 // First registers a module and then calls its Init method
 func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) error {
-	for _, md := range botmodules {
+	for i, md := range botmodules {
 		if md.Global() {
 			m.globalCommands = append(m.globalCommands, md)
 			m.log.Infof("registered public command")
@@ -79,8 +79,10 @@ func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) e
 		if hasSchedule {
 			now := time.Now()
 			nextRunDuration := nextRunTime.Sub(now)
-			m.log.Info("scheduling module to run at ", now.Add(nextRunDuration))
-			timer := time.AfterFunc(nextRunDuration, func() { m.schedulePRIVMSG(md, duration) })
+			moduleToCall := botmodules[i]
+			timer := time.AfterFunc(nextRunDuration, func() {
+				m.schedulePRIVMSG(moduleToCall, duration)
+			})
 			m.timers = append(m.timers, timer)
 		}
 	}
@@ -126,20 +128,20 @@ func (m *ModuleService) PRIVMSGCallback(e *girc.Event) {
 	}
 }
 
-func (m *ModuleService) schedulePRIVMSG(module modules.ModuleInterface, duration time.Duration) {
+func (m *ModuleService) schedulePRIVMSG(md modules.ModuleInterface, duration time.Duration) {
 	ticker := time.NewTicker(duration)
 	m.tickers = append(m.tickers, ticker)
 	command := "schedule"
-	if len(module.Commands()) > 0 {
-		command = module.Commands()[0]
+	if len(md.Commands()) > 0 {
+		command = md.Commands()[0]
 	}
 	for ; true; <-ticker.C {
 		for _, channel := range m.channels {
-			time.Sleep(5 * time.Second)
-			err := module.Run(channel, "SYSTEM", "SYSTEM", command, make([]string, 0))
+			err := md.Run(channel, "SYSTEM", "SYSTEM", command, make([]string, 0))
 			if err != nil {
 				m.log.Error("error running scheduled module ", err)
 			}
+			time.Sleep(5 * time.Second)
 		}
 	}
 }
