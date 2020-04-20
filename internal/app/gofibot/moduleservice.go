@@ -136,7 +136,10 @@ func (m *ModuleService) schedulePRIVMSG(module modules.ModuleInterface, duration
 	for ; true; <-ticker.C {
 		for _, channel := range m.channels {
 			time.Sleep(5 * time.Second)
-			module.Run(channel, "SYSTEM", "SYSTEM", command, make([]string, 0))
+			err := module.Run(channel, "SYSTEM", "SYSTEM", command, make([]string, 0))
+			if err != nil {
+				m.log.Error("error running scheduled module ", err)
+			}
 		}
 	}
 }

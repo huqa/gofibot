@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/v2"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/lrstanley/girc"
 )
@@ -39,11 +39,12 @@ func (m *URLTitleModule) Init() error {
 	c := colly.NewCollector(
 		colly.Async(true),
 		colly.AllowURLRevisit(),
+		colly.MaxDepth(1),
 	)
 	c.AllowURLRevisit = true
 	c.OnHTML("title", m.URLTitleCallback)
 	//c.OnError(func(r *colly.Response, err error) {
-		//m.log.Error("error: ", r.StatusCode, err)
+	//m.log.Error("error: ", r.StatusCode, err)
 	//})
 	m.titleCollector = c
 	return nil
@@ -89,7 +90,10 @@ func (m *URLTitleModule) Schedule() (bool, time.Time, time.Duration) {
 }
 
 func (m *URLTitleModule) URLTitleCallback(e *colly.HTMLElement) {
-	channel := e.Response.Ctx.Get("Channel")
-	title := URLTitle(e.Text)
-        m.client.Cmd.Message(channel, "Title: "+string(title))
+	if e.Index == 0 {
+		channel := e.Response.Ctx.Get("Channel")
+		title := URLTitle(e.Text)
+		m.client.Cmd.Message(channel, "Title: "+string(title))
+	}
+	return
 }
