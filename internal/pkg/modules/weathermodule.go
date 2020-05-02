@@ -16,6 +16,7 @@ type WeatherModule struct {
 	weatherCollector *colly.Collector
 	url              string
 	weatherOptions   string
+	locations        map[string]string
 }
 
 // WeatherData defines the basic data structure for weather data
@@ -40,6 +41,9 @@ func NewWeatherModule(log logger.Logger, client *girc.Client) *WeatherModule {
 		nil,
 		"http://wttr.in/%s",
 		"?format=%l,%C,%t,%h,%w,%p&lang=fi",
+		map[string]string{
+			"tampere": "tmp",
+		},
 	}
 }
 
@@ -71,6 +75,9 @@ func (m *WeatherModule) Run(channel, hostmask, user, command string, args []stri
 		return nil
 	}
 	message := strings.Join(args, " ")
+	if loc, ok := m.locations[message]; ok {
+		message = loc
+	}
 	weatherURL := fmt.Sprintf(m.url, message)
 	weatherURL += m.weatherOptions
 	ctx := colly.NewContext()
@@ -113,8 +120,19 @@ func (m *WeatherModule) weatherResponseCallback(r *colly.Response) {
 	}
 
 	var wd = strings.Split(body, ",")
+	if len(wd) < 6 {
+		m.client.Cmd.Message(channel, "!w - weather service error")
+		return
+	}
+	var loc string
+	loc = wd[0]
+	for key, val := range m.locations {
+		if val == wd[0] {
+			loc = key
+		}
+	}
 	data := &WeatherData{
-		Location:      strings.Title(wd[0]),
+		Location:      strings.Title(loc),
 		Description:   wd[1],
 		Temperature:   wd[2],
 		Humidity:      wd[3],
