@@ -72,7 +72,7 @@ func (m *WeatherModule) Stop() error {
 // Run sends weather data to PRIVMSG target channel
 func (m *WeatherModule) Run(channel, hostmask, user, command string, args []string) error {
 	if len(args) == 0 {
-		return nil
+		args = "tampere"
 	}
 	message := strings.Join(args, " ")
 	if loc, ok := m.locations[message]; ok {
