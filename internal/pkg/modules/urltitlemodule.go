@@ -58,15 +58,17 @@ func (m *URLTitleModule) Stop() error {
 // Run shouts url titles to PRIVMSG in target channel
 // TODO: imdb url support
 func (m *URLTitleModule) Run(channel, hostmask, user, command string, args []string) error {
-	message := strings.Join(args, " ")
-	URL, err := url.Parse(message)
-	if err != nil {
-		return nil
-	}
-	ctx := colly.NewContext()
-	ctx.Put("Channel", channel)
+	//message := strings.Join(args, " ")
+	for _, message := range args {
+		URL, err := url.Parse(message)
+		if err != nil {
+			continue
+		}
+		ctx := colly.NewContext()
+		ctx.Put("Channel", channel)
 
-	m.titleCollector.Request("GET", URL.String(), nil, ctx, nil)
+		m.titleCollector.Request("GET", URL.String(), nil, ctx, nil)
+	}
 	return nil
 }
 
@@ -92,7 +94,7 @@ func (m *URLTitleModule) Schedule() (bool, time.Time, time.Duration) {
 func (m *URLTitleModule) URLTitleCallback(e *colly.HTMLElement) {
 	if e.Index == 0 {
 		channel := e.Response.Ctx.Get("Channel")
-		title := URLTitle(e.Text)
+		title := URLTitle(strings.TrimLeft(e.Text, " "))
 		m.client.Cmd.Message(channel, "Title: "+string(title))
 	}
 	return
