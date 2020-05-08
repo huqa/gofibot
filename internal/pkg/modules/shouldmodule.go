@@ -27,6 +27,7 @@ func NewShouldModule(log logger.Logger, client *girc.Client) *ShouldModule {
 		[]string{
 			"pitäiskö",
 			"pitäskö",
+			"pitäsköhän",
 			"pitäisikö",
 			"pitääkö",
 			"pitäsikö",
