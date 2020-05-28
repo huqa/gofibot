@@ -94,7 +94,7 @@ func (m *URLTitleModule) Schedule() (bool, time.Time, time.Duration) {
 func (m *URLTitleModule) URLTitleCallback(e *colly.HTMLElement) {
 	if e.Index == 0 {
 		channel := e.Response.Ctx.Get("Channel")
-		title := URLTitle(strings.TrimLeft(strings.TrimLeft(e.Text, " "), "\t"))
+		title := URLTitle(strings.TrimSpace(e.Text))
 		m.client.Cmd.Message(channel, "Title: "+string(title))
 	}
 	return
