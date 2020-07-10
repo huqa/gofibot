@@ -17,10 +17,18 @@ const UserAgent string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWe
 type URLTitleModule struct {
 	*Module
 	titleCollector *colly.Collector
+	ytCollector    *colly.Collector
 }
 
 // URLTitle defines a URLs content
 type URLTitle string
+
+var youtubeURLs = map[string]string{
+	"www.youtube.com": "",
+	"youtube.com":     "",
+	"youtu.be":        "",
+	"m.youtube.com":   "",
+}
 
 // NewURLTitleModule constructs new URLTitleModule
 func NewURLTitleModule(log logger.Logger, client *girc.Client) *URLTitleModule {
@@ -31,6 +39,7 @@ func NewURLTitleModule(log logger.Logger, client *girc.Client) *URLTitleModule {
 			global: true,
 			event:  "PRIVMSG",
 		},
+		nil,
 		nil,
 	}
 }
@@ -46,10 +55,19 @@ func (m *URLTitleModule) Init() error {
 	)
 	c.AllowURLRevisit = true
 	c.OnHTML("title", m.URLTitleCallback)
+	m.titleCollector = c
+	y := colly.NewCollector(
+		colly.Async(true),
+		colly.AllowURLRevisit(),
+		colly.MaxDepth(1),
+		colly.UserAgent(UserAgent),
+	)
+	y.AllowURLRevisit = true
+	y.OnHTML("meta[name=title]", m.YTTitleCallback)
+	m.ytCollector = y
 	//c.OnError(func(r *colly.Response, err error) {
 	//m.log.Error("error: ", r.StatusCode, err)
 	//})
-	m.titleCollector = c
 	return nil
 }
 
@@ -69,6 +87,11 @@ func (m *URLTitleModule) Run(channel, hostmask, user, command string, args []str
 		}
 		ctx := colly.NewContext()
 		ctx.Put("Channel", channel)
+		// youtube urls have their own collector
+		if _, ok := youtubeURLs[URL.Hostname()]; ok {
+			m.ytCollector.Request("GET", URL.String(), nil, ctx, nil)
+			continue
+		}
 
 		m.titleCollector.Request("GET", URL.String(), nil, ctx, nil)
 	}
@@ -98,6 +121,15 @@ func (m *URLTitleModule) URLTitleCallback(e *colly.HTMLElement) {
 	if e.Index == 0 {
 		channel := e.Response.Ctx.Get("Channel")
 		title := URLTitle(strings.TrimSpace(e.Text))
+		m.client.Cmd.Message(channel, "Title: "+string(title))
+	}
+	return
+}
+
+func (m *URLTitleModule) YTTitleCallback(e *colly.HTMLElement) {
+	if e.Index == 0 {
+		channel := e.Response.Ctx.Get("Channel")
+		title := URLTitle(strings.TrimSpace(e.Attr("content")) + " - YouTube")
 		m.client.Cmd.Message(channel, "Title: "+string(title))
 	}
 	return
