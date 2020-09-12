@@ -12,7 +12,7 @@ import (
 // Application defines all necessary services to be used by gofibot
 type Application struct {
 	log        logger.Logger
-	ircService IRCServiceInterface
+	IRCService IRCServiceInterface
 }
 
 // NewApplication construct a new gofibot application
@@ -21,16 +21,17 @@ func NewApplication(
 	log logger.Logger,
 	db *bolt.DB,
 	botConfig config.BotConfiguration,
-) (a *Application, err error) {
+) (app *Application, err error) {
 	ircService := NewIRCService(log, db, botConfig)
 	err = ircService.Init()
 	if err != nil {
 		log.Error("error initializing irc service")
+		return app, err
 	}
 
-	app := &Application{
+	app = &Application{
 		log:        log.Named("gofibot").WithContext(ctx),
-		ircService: ircService,
+		IRCService: ircService,
 	}
 
 	return app, nil

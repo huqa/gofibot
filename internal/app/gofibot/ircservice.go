@@ -64,13 +64,6 @@ func (is *IRCService) Init() error {
 		is.log.Error("error joining channels ", err)
 		return err
 	}
-
-	err = is.Connect()
-	if err != nil {
-		is.log.Error("error connecting to server ", err)
-		return err
-	}
-
 	return nil
 }
 

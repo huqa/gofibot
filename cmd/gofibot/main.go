@@ -53,14 +53,23 @@ func main() {
 	}
 	defer db.Close()
 
-	_, err = gofibot.NewApplication(ctx, log, db, appConfig.BotConfig)
+	app, err := gofibot.NewApplication(ctx, log, db, appConfig.BotConfig)
 	if err != nil {
 		log.Fatal("failed to create gofibot ", err)
 		os.Exit(1)
 	}
 	log.Info("started gofibot")
 
-	// create bot
+	go func() {
+		for {
+			if err := app.IRCService.Connect(); err != nil {
+				log.Error("connection error", err)
+				log.Info("reconnecting in 15 seconds")
+				time.Sleep(15 * time.Second)
+			}
+		}
+	}()
+
 	proc.WaitForInterrupt()
 
 	log.Info("stopping gofibot")
