@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"sort"
 	"strconv"
 	"time"
 
@@ -20,6 +21,8 @@ const (
 	guessRollsBucket string = `Rolls`
 
 	guessLimitPerDay int = 5
+
+	statsCommand string = "arvaa-stats"
 )
 
 // Guess represents a guess from a player
@@ -52,7 +55,7 @@ func NewGuessModule(log logger.Logger, client *girc.Client, db *bolt.DB) *GuessM
 			client:   client,
 			global:   false,
 			event:    "PRIVMSG",
-			commands: []string{"arvaa"},
+			commands: []string{"arvaa", statsCommand},
 		},
 		nil,
 		db,
@@ -101,6 +104,55 @@ func (m *GuessModule) Stop() error {
 
 // Run Stats input to PRIVMSG target channel
 func (m *GuessModule) Run(channel, hostmask, user, command string, args []string) error {
+	if command == statsCommand {
+		rolls, _, err := m.getRollStats()
+		if err != nil {
+			m.Module.log.Error("roll stats error", err)
+		}
+		/*allRolls := make(map[int]int, 0)
+		allRights := make(map[int]int, 0)
+		for k, roll := range rolls {
+			allRolls[k] = roll.Rolls
+			allRights[k] = roll.Rights
+		}
+		for k, r := range allRolls {
+
+		}*/
+		allRights := make([]Roll, len(rolls))
+		copy(allRights, rolls)
+		// sort in reverse order
+		sort.Slice(rolls, func(i, j int) bool {
+			return rolls[i].Rolls > rolls[j].Rolls
+		})
+		sort.Slice(allRights, func(i, j int) bool {
+			return allRights[i].Rights > allRights[j].Rights
+		})
+
+		i := 1
+		output := ""
+		for _, r := range rolls {
+			if i < 11 {
+				output += fmt.Sprintf("(%d:%d) ", r.Value, r.Rolls)
+			}
+			i++
+		}
+
+		i = 1
+		output1 := ""
+		for _, r := range allRights {
+			if i < 11 {
+				output1 += fmt.Sprintf("(%d:%d) ", r.Value, r.Rights)
+			}
+			i++
+		}
+		m.client.Cmd.Message(channel, "!arvaa-stats TOP 10 heitetyt luvut (nopanluku:määrä)")
+		m.client.Cmd.Message(channel, output)
+
+		m.client.Cmd.Message(channel, "!arvaa-stats TOP 10 oikein arvatut luvut (nopanluku:määrä)")
+		m.client.Cmd.Message(channel, output1)
+
+		return nil
+	}
 	if hostmask == "SYSTEM" && user == "SYSTEM" {
 		m.resetDailyGuesses()
 		return nil
@@ -273,7 +325,6 @@ func (m *GuessModule) upsertRoll(number int, wasRight bool) error {
 }
 
 func (m *GuessModule) getPlayerStats(nick string) (guesses int, rights int, err error) {
-
 	err = m.db.View(func(tx *bolt.Tx) error {
 		guessBucket := tx.Bucket([]byte(guessRootBucket)).Bucket([]byte(guessStatsBucket))
 		guessBytes := guessBucket.Get([]byte(nick))
@@ -292,4 +343,28 @@ func (m *GuessModule) getPlayerStats(nick string) (guesses int, rights int, err 
 		return nil
 	})
 	return guesses, rights, nil
+}
+
+func (m *GuessModule) getRollStats() (rolls []Roll, keys []int, err error) {
+	rolls = make([]Roll, 0)
+	keys = make([]int, 0)
+	err = m.db.View(func(tx *bolt.Tx) error {
+		rollBucket := tx.Bucket([]byte(guessRootBucket)).Bucket([]byte(guessRollsBucket))
+		return rollBucket.ForEach(func(k, v []byte) error {
+			var key int
+			key = utils.Btoi(k)
+			keys = append(keys, key)
+			var r Roll
+			err := json.Unmarshal(v, &r)
+			if err != nil {
+				return err
+			}
+			rolls = append(rolls, r)
+			return nil
+		})
+	})
+	if err != nil {
+		return rolls, keys, err
+	}
+	return rolls, keys, nil
 }
