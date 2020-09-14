@@ -109,15 +109,6 @@ func (m *GuessModule) Run(channel, hostmask, user, command string, args []string
 		if err != nil {
 			m.Module.log.Error("roll stats error", err)
 		}
-		/*allRolls := make(map[int]int, 0)
-		allRights := make(map[int]int, 0)
-		for k, roll := range rolls {
-			allRolls[k] = roll.Rolls
-			allRights[k] = roll.Rights
-		}
-		for k, r := range allRolls {
-
-		}*/
 		allRights := make([]Roll, len(rolls))
 		copy(allRights, rolls)
 		// sort in reverse order
