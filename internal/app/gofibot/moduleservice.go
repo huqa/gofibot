@@ -62,6 +62,7 @@ func (m *ModuleService) StopModules() error {
 // RegisterModules registers modules to ModuleService
 // First registers a module and then calls its Init method
 func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) error {
+	loc, _ := time.LoadLocation("Europe/Helsinki")
 	for i, md := range botmodules {
 		if md.Global() {
 			m.globalCommands = append(m.globalCommands, md)
@@ -77,7 +78,7 @@ func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) e
 		}
 		hasSchedule, nextRunTime, duration := md.Schedule()
 		if hasSchedule {
-			now := time.Now()
+			now := time.Now().In(loc)
 			nextRunDuration := nextRunTime.Sub(now)
 			moduleToCall := botmodules[i]
 			timer := time.AfterFunc(nextRunDuration, func() {

@@ -31,13 +31,15 @@ func NewShouldModule(log logger.Logger, client *girc.Client) *ShouldModule {
 			"pitäisikö",
 			"pitääkö",
 			"pitäsikö",
+			"pitäisiköhän",
 		},
 	}
 }
 
 const (
-	replyYes string = "pitäis"
-	replyNo  string = "ei pitäis"
+	replyYes   string = "pitäis"
+	replyNo    string = "ei pitäis"
+	replyMaybe string = "ehkä"
 )
 
 // Init initializes echo module
@@ -58,9 +60,13 @@ func (m *ShouldModule) Run(channel, hostmask, user, command string, args []strin
 	rand.Seed(time.Now().UnixNano())
 	for _, sh := range m.shoulds {
 		if strings.Contains(message, sh) {
-			i := rand.Intn(11)
-			if i >= 10 {
+			i := rand.Intn(12)
+			if i == 10 {
 				m.client.Cmd.Message(channel, replyNo)
+				return nil
+			}
+			if i == 11 {
+				m.client.Cmd.Message(channel, replyMaybe)
 				return nil
 			}
 			m.client.Cmd.Message(channel, replyYes)

@@ -125,7 +125,7 @@ func (m *StatsModule) Global() bool {
 // Schedule returns true, time.Time if this module is scheduled to be run at time.Time
 func (m *StatsModule) Schedule() (bool, time.Time, time.Duration) {
 	dur, _ := time.ParseDuration("24h")
-	t := time.Now()
+	t := time.Now().In(m.location)
 	n := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, m.location)
 	n = n.Add(dur)
 	return true, n, dur
