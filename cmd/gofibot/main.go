@@ -48,7 +48,7 @@ func main() {
 
 	db, err := bolt.Open(fmt.Sprintf("./db/%s", botConfig.DatabaseFile), 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		log.Fatal("failed to open sqlite database ", err)
+		log.Fatal("failed to open bolt database ", err)
 		os.Exit(1)
 	}
 	defer db.Close()
