@@ -10,7 +10,7 @@ import (
 	"github.com/lrstanley/girc"
 )
 
-const UserAgent string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.3177.89 Safari/537.36 Spreaker/1.0"
+const userAgent string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.3177.89 Safari/537.36 Spreaker/1.0"
 
 // URLTitleModule handles url titles scraped from PRIVMSGs
 // Todo cache
@@ -51,7 +51,7 @@ func (m *URLTitleModule) Init() error {
 		colly.Async(true),
 		colly.AllowURLRevisit(),
 		colly.MaxDepth(1),
-		colly.UserAgent(UserAgent),
+		colly.UserAgent(userAgent),
 	)
 	c.AllowURLRevisit = true
 	c.OnHTML("title", m.URLTitleCallback)
@@ -60,7 +60,7 @@ func (m *URLTitleModule) Init() error {
 		colly.Async(true),
 		colly.AllowURLRevisit(),
 		colly.MaxDepth(1),
-		colly.UserAgent(UserAgent),
+		colly.UserAgent(userAgent),
 	)
 	y.AllowURLRevisit = true
 	y.OnHTML("meta[name=title]", m.YTTitleCallback)

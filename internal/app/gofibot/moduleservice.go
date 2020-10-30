@@ -28,10 +28,11 @@ type ModuleService struct {
 	tickers        []*time.Ticker
 	timers         []*time.Timer
 	Prefix         string
+	location       *time.Location
 }
 
 // NewModuleService constructs new ModuleService
-func NewModuleService(log logger.Logger, channels []string, prefix string) ModuleServiceInterface {
+func NewModuleService(log logger.Logger, channels []string, prefix string, location *time.Location) ModuleServiceInterface {
 	return &ModuleService{
 		log:            log.Named("moduleservice"),
 		channels:       channels,
@@ -40,6 +41,7 @@ func NewModuleService(log logger.Logger, channels []string, prefix string) Modul
 		tickers:        make([]*time.Ticker, 0),
 		timers:         make([]*time.Timer, 0),
 		Prefix:         prefix,
+		location:       location,
 	}
 }
 
@@ -62,7 +64,6 @@ func (m *ModuleService) StopModules() error {
 // RegisterModules registers modules to ModuleService
 // First registers a module and then calls its Init method
 func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) error {
-	loc, _ := time.LoadLocation("Europe/Helsinki")
 	for i, md := range botmodules {
 		if md.Global() {
 			m.globalCommands = append(m.globalCommands, md)
@@ -78,7 +79,7 @@ func (m *ModuleService) RegisterModules(botmodules ...modules.ModuleInterface) e
 		}
 		hasSchedule, nextRunTime, duration := md.Schedule()
 		if hasSchedule {
-			now := time.Now().In(loc)
+			now := time.Now().In(m.location)
 			nextRunDuration := nextRunTime.Sub(now)
 			moduleToCall := botmodules[i]
 			timer := time.AfterFunc(nextRunDuration, func() {

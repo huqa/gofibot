@@ -21,7 +21,7 @@ const (
 var ignoredChannels = map[string]int{}
 
 // NewDateModule constructs new DateModule
-func NewDateModule(log logger.Logger, client *girc.Client) *DateModule {
+func NewDateModule(log logger.Logger, client *girc.Client, location *time.Location) *DateModule {
 	return &DateModule{
 		&Module{
 			log:      log.Named("Datemodule"),
@@ -29,19 +29,13 @@ func NewDateModule(log logger.Logger, client *girc.Client) *DateModule {
 			client:   client,
 			event:    "PRIVMSG",
 		},
-		nil,
+		location,
 	}
 }
 
 // Init initializes Date module
 func (m *DateModule) Init() error {
 	m.log.Info("Init")
-	loc, err := time.LoadLocation("Europe/Helsinki")
-	if err != nil {
-		m.log.Error("couldn't load time zone for helsinki: ", err)
-		return err
-	}
-	m.location = loc
 	return nil
 }
 

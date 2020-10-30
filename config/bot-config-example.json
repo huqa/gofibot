@@ -9,5 +9,6 @@
     "databaseFile": "example.db",
     "channels": [
         "#mychannel"
-    ]
+    ],
+    "location": "UTC"
 }

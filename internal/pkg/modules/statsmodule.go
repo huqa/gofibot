@@ -34,7 +34,7 @@ type StatsModule struct {
 }
 
 // NewStatsModule constructs a new StatsModule
-func NewStatsModule(log logger.Logger, client *girc.Client, db *bolt.DB) *StatsModule {
+func NewStatsModule(log logger.Logger, client *girc.Client, db *bolt.DB, location *time.Location) *StatsModule {
 	return &StatsModule{
 		&Module{
 			log:      log.Named("Statsmodule"),
@@ -44,7 +44,7 @@ func NewStatsModule(log logger.Logger, client *girc.Client, db *bolt.DB) *StatsM
 			commands: []string{"stats", "toptod"},
 		},
 		db,
-		nil,
+		location,
 	}
 }
 
@@ -63,13 +63,6 @@ func (m *StatsModule) Init() error {
 	if err != nil {
 		return fmt.Errorf("could not set up buckets, %v", err)
 	}
-
-	loc, err := time.LoadLocation("Europe/Helsinki")
-	if err != nil {
-		m.log.Error("couldn't load time zone for helsinki: ", err)
-		return err
-	}
-	m.location = loc
 
 	return nil
 }

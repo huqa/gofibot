@@ -48,7 +48,7 @@ type GuessModule struct {
 }
 
 // NewGuessModule constructs a new GuessModule
-func NewGuessModule(log logger.Logger, client *girc.Client, db *bolt.DB) *GuessModule {
+func NewGuessModule(log logger.Logger, client *girc.Client, db *bolt.DB, location *time.Location) *GuessModule {
 	return &GuessModule{
 		&Module{
 			log:      log.Named("guessmodule"),
@@ -57,7 +57,7 @@ func NewGuessModule(log logger.Logger, client *girc.Client, db *bolt.DB) *GuessM
 			event:    "PRIVMSG",
 			commands: []string{"arvaa", statsCommand},
 		},
-		nil,
+		location,
 		db,
 		make(map[string]int),
 	}
@@ -67,14 +67,7 @@ func NewGuessModule(log logger.Logger, client *girc.Client, db *bolt.DB) *GuessM
 func (m *GuessModule) Init() error {
 	m.log.Info("Init")
 
-	loc, err := time.LoadLocation("Europe/Helsinki")
-	if err != nil {
-		m.log.Error("couldn't load time zone for helsinki: ", err)
-		return err
-	}
-	m.location = loc
-
-	err = m.db.Update(func(tx *bolt.Tx) error {
+	err := m.db.Update(func(tx *bolt.Tx) error {
 		root, err := tx.CreateBucketIfNotExists([]byte(guessRootBucket))
 		if err != nil {
 			return fmt.Errorf("could not create root bucket: %v", err)

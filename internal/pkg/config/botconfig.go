@@ -17,6 +17,7 @@ type BotConfiguration struct {
 	Channels     []string `json:"channels"`
 	Prefix       string   `json:"prefix"`
 	DatabaseFile string   `json:"databaseFile"`
+	Location     string   `json:"location"`
 }
 
 func (c BotConfiguration) String() string {

@@ -1,6 +1,8 @@
 package gofibot
 
 import (
+	"time"
+
 	"github.com/huqa/gofibot/internal/pkg/config"
 	"github.com/huqa/gofibot/internal/pkg/logger"
 	"github.com/huqa/gofibot/internal/pkg/modules"
@@ -24,6 +26,7 @@ type IRCService struct {
 	client        *girc.Client
 	db            *bolt.DB
 	callbacks     []string
+	location      *time.Location
 }
 
 func NewIRCService(log logger.Logger, db *bolt.DB, cfg config.BotConfiguration) IRCServiceInterface {
@@ -41,13 +44,20 @@ func NewIRCService(log logger.Logger, db *bolt.DB, cfg config.BotConfiguration) 
 
 	client := girc.New(config)
 
+	loc, err := time.LoadLocation(cfg.Location)
+	if err != nil {
+		log.Error("can't load given timezone", err)
+		loc, _ = time.LoadLocation("UTC")
+	}
+
 	return &IRCService{
 		config:        cfg,
 		client:        client,
 		callbacks:     make([]string, 0),
 		log:           log.Named("ircservice"),
-		moduleService: NewModuleService(log, cfg.Channels, cfg.Prefix),
+		moduleService: NewModuleService(log, cfg.Channels, cfg.Prefix, loc),
 		db:            db,
+		location:      loc,
 	}
 }
 
@@ -80,13 +90,14 @@ func (is *IRCService) Connect() error {
 
 func (is *IRCService) LoadModules() error {
 	is.log.Info("loading modules")
+
 	err := is.moduleService.RegisterModules(
 		//modules.NewEchoModule(is.log, is.client),
 		modules.NewWeatherModule(is.log, is.client),
-		modules.NewStatsModule(is.log, is.client, is.db),
+		modules.NewStatsModule(is.log, is.client, is.db, is.location),
 		modules.NewURLTitleModule(is.log, is.client),
-		modules.NewDateModule(is.log, is.client),
-		modules.NewGuessModule(is.log, is.client, is.db),
+		modules.NewDateModule(is.log, is.client, is.location),
+		modules.NewGuessModule(is.log, is.client, is.db, is.location),
 		modules.NewShouldModule(is.log, is.client),
 	)
 	if err != nil {
