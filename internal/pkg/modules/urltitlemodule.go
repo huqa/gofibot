@@ -12,7 +12,7 @@ import (
 
 const userAgent string = "Mozilla/5.0 (Linux; Android 7.1.2; DSCS9 Build/NHG47L; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/80.0.3987.149 Safari/537.36"
 const setCookie string = "Set-Cookie"
-const consentCookie string = "CONSENT=YES+cb.20210328-17-p0.en-GB+FX+074; Domain=.youtube.com; Path=/; SameSite=None; Secure"
+const consentCookie string = "CONSENT=YES; Domain=.youtube.com; Path=/; SameSite=None; Secure; Expires=Sun, 10 Jan 2038 07:59:59 GMT; Max-Age=946080000"
 
 // URLTitleModule handles url titles scraped from PRIVMSGs
 // Todo cache
@@ -65,6 +65,7 @@ func (m *URLTitleModule) Init() error {
 		colly.UserAgent(userAgent),
 	)
 	y.AllowURLRevisit = true
+	y.DisableCookies()
 	y.OnHTML("meta[name=title]", m.YTTitleCallback)
 	m.ytCollector = y
 	//c.OnError(func(r *colly.Response, err error) {
