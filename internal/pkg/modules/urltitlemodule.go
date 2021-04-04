@@ -12,7 +12,7 @@ import (
 
 const userAgent string = "Mozilla/5.0 (Linux; Android 7.1.2; DSCS9 Build/NHG47L; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/80.0.3987.149 Safari/537.36"
 const setCookie string = "Set-Cookie"
-const consentCookie string = "CONSENT=YES+cb.20210328-17-p0.en-GB+FX+074; Path=/; SameSite=None; Secure"
+const consentCookie string = "CONSENT=YES+cb.20210328-17-p0.en-GB+FX+074; Domain=.youtube.com; Path=/; SameSite=None; Secure"
 
 // URLTitleModule handles url titles scraped from PRIVMSGs
 // Todo cache
