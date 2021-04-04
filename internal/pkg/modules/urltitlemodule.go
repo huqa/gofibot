@@ -10,7 +10,9 @@ import (
 	"github.com/lrstanley/girc"
 )
 
-const userAgent string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.3177.89 Safari/537.36 Spreaker/1.0"
+const userAgent string = "Mozilla/5.0 (Linux; Android 7.1.2; DSCS9 Build/NHG47L; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/80.0.3987.149 Safari/537.36"
+const setCookie string = "Set-Cookie"
+const consentCookie string = "CONSENT=YES+cb.20210328-17-p0.en-GB+FX+074; Path=/; SameSite=None; Secure"
 
 // URLTitleModule handles url titles scraped from PRIVMSGs
 // Todo cache
@@ -89,7 +91,10 @@ func (m *URLTitleModule) Run(channel, hostmask, user, command string, args []str
 		ctx.Put("Channel", channel)
 		// youtube urls have their own collector
 		if _, ok := youtubeURLs[URL.Hostname()]; ok {
-			m.ytCollector.Request("GET", URL.String(), nil, ctx, nil)
+			headers := map[string][]string{
+				setCookie: {consentCookie},
+			}
+			m.ytCollector.Request("GET", URL.String(), nil, ctx, headers)
 			continue
 		}
 
