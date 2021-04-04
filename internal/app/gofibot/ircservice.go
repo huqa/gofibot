@@ -78,7 +78,7 @@ func (is *IRCService) Init() error {
 }
 
 func (is *IRCService) Stop() error {
-	is.client.Quit("stopping gofi")
+	is.client.Quit("quit")
 	is.moduleService.StopModules()
 	return nil
 }

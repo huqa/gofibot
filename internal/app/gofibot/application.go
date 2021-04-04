@@ -36,3 +36,7 @@ func NewApplication(
 
 	return app, nil
 }
+
+func (a *Application) Shutdown() {
+	a.IRCService.Stop()
+}

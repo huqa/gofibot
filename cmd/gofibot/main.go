@@ -58,6 +58,7 @@ func main() {
 		log.Fatal("failed to create gofibot ", err)
 		os.Exit(1)
 	}
+	defer app.Shutdown()
 	log.Info("started gofibot")
 
 	go func() {
@@ -72,6 +73,5 @@ func main() {
 
 	proc.WaitForInterrupt()
 
-	log.Info("stopping gofibot")
-	defer log.Info("stopped gofibot")
+	defer log.Info("stopping gofibot")
 }
