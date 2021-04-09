@@ -40,7 +40,7 @@ func NewWeatherModule(log logger.Logger, client *girc.Client) *WeatherModule {
 		},
 		nil,
 		"http://wttr.in/%s",
-		"?format=%l,%C,%t,%h,%w,%p&lang=fi",
+		"?M&format=%l,%C,%t,%h,%w,%p&lang=fi",
 		map[string]string{
 			"tampere": "tmp",
 		},
